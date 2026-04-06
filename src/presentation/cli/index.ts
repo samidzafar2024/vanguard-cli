@@ -5,7 +5,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import gradient from 'gradient-string'
+import { agentsCommand } from './commands/agents.js'
 import { initCommand } from './commands/init.js'
+import { integrationsCommand } from './commands/integrations.js'
 import { memoryCommand } from './commands/memory.js'
 import { statusCommand } from './commands/status.js'
 import { taskCommand } from './commands/task.js'
@@ -44,5 +46,7 @@ program.addCommand(initCommand)
 program.addCommand(statusCommand)
 program.addCommand(taskCommand)
 program.addCommand(memoryCommand)
+program.addCommand(integrationsCommand)
+program.addCommand(agentsCommand)
 
 program.parse()
