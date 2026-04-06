@@ -275,8 +275,9 @@ ${objective}
 // vanguard task start <sequence>
 taskCommand
 	.command('start [sequence]')
-	.description('Start working on a task (mark as in-progress)')
-	.action(async (sequenceArg) => {
+	.description('Start working on a task (creates git branch + marks in-progress)')
+	.option('--no-branch', 'Skip git branch creation')
+	.action(async (sequenceArg, options) => {
 		const tasksDir = getTasksDir()
 		const tasks = loadAllTasks(tasksDir)
 		const todoTasks = tasks.filter((t) => t.frontmatter.status === 'todo')
@@ -309,7 +310,39 @@ taskCommand
 		}
 
 		updateTaskStatus(target.path, 'in-progress')
-		console.log(pc.green(`\n  ◐ Started: ${target.frontmatter.title}\n`))
+
+		// Create git branch
+		if (options.branch !== false) {
+			const seq = String(target.frontmatter.sequence).padStart(3, '0')
+			const slug = target.frontmatter.title
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/^-|-$/g, '')
+				.slice(0, 40)
+			const branchName = `feature/task-${seq}-${slug}`
+
+			try {
+				const { execSync } = await import('node:child_process')
+				// Check if git repo
+				execSync('git rev-parse --is-inside-work-tree', { stdio: 'pipe' })
+
+				// Check if branch already exists
+				try {
+					execSync(`git rev-parse --verify ${branchName}`, { stdio: 'pipe' })
+					// Branch exists, switch to it
+					execSync(`git checkout ${branchName}`, { stdio: 'pipe' })
+					console.log(pc.cyan(`\n  Switched to existing branch: ${branchName}`))
+				} catch {
+					// Branch doesn't exist, create it
+					execSync(`git checkout -b ${branchName}`, { stdio: 'pipe' })
+					console.log(pc.cyan(`\n  Created branch: ${branchName}`))
+				}
+			} catch {
+				console.log(pc.dim('\n  (Not a git repo — branch creation skipped)'))
+			}
+		}
+
+		console.log(pc.green(`  ◐ Started: ${target.frontmatter.title}\n`))
 	})
 
 // vanguard task done [sequence]
