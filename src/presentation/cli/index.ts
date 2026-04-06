@@ -8,7 +8,10 @@ import gradient from 'gradient-string'
 import { agentsCommand } from './commands/agents.js'
 import { initCommand } from './commands/init.js'
 import { integrationsCommand } from './commands/integrations.js'
+import { mcpCommand } from './commands/mcp.js'
 import { memoryCommand } from './commands/memory.js'
+import { pullCommand } from './commands/pull.js'
+import { refreshCommand } from './commands/refresh.js'
 import { statusCommand } from './commands/status.js'
 import { taskCommand } from './commands/task.js'
 
@@ -42,11 +45,21 @@ program
 		}
 	})
 
+// Core commands
 program.addCommand(initCommand)
 program.addCommand(statusCommand)
+
+// Workflow
 program.addCommand(taskCommand)
 program.addCommand(memoryCommand)
 program.addCommand(integrationsCommand)
+
+// Claude Code integration
 program.addCommand(agentsCommand)
+program.addCommand(mcpCommand)
+
+// Sync & maintenance
+program.addCommand(pullCommand)
+program.addCommand(refreshCommand)
 
 program.parse()
