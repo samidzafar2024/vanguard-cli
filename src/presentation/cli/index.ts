@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import gradient from 'gradient-string'
 import { initCommand } from './commands/init.js'
+import { statusCommand } from './commands/status.js'
+import { taskCommand } from './commands/task.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const packagePath = join(__dirname, '..', '..', '..', 'package.json')
@@ -38,5 +40,7 @@ program
 	})
 
 program.addCommand(initCommand)
+program.addCommand(statusCommand)
+program.addCommand(taskCommand)
 
 program.parse()
