@@ -1,0 +1,21 @@
+# Vanguard Project Manifest
+#
+# This file is user-owned — Vanguard will not overwrite it after creation.
+# Update this file as you create specs, plans, and tasks.
+
+vanguard:
+  version: "1.0"
+
+project:
+  name: vanguard-cli
+  type: greenfield
+  track: team
+
+actions: {}
+
+agents: {}
+
+documents:
+  specs: {}
+  plans: {}
+  tasks: {}

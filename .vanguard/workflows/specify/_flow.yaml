@@ -1,0 +1,52 @@
+# Specification Workflow
+#
+# This file defines the step sequence for the specify action.
+# Each step builds on the previous, with checkpoints for validation.
+#
+# To execute: /vanguard.specify <feature-name>
+# To resume: /vanguard.specify --resume <feature-name>
+#
+
+workflow:
+  id: specify
+  name: Specification
+  description: Create a comprehensive feature specification
+
+entryConditions:
+  - Feature request or idea from user
+  - Optional discovery document
+
+finalOutputs:
+  - .vanguard/specs/{feature}.md
+
+steps:
+  - sequence: 1
+    id: gather-context
+    name: Gather Context
+    file: ./gather-context.md
+    checkpoint: Do I understand what we are building and why?
+  - sequence: 2
+    id: define-personas
+    name: Define Personas
+    file: ./define-personas.md
+    checkpoint: Are personas realistic? Do they cover all user types?
+  - sequence: 3
+    id: user-scenarios
+    name: User Scenarios
+    file: ./user-scenarios.md
+    checkpoint: Do scenarios cover main use cases? Any gaps?
+  - sequence: 4
+    id: functional-requirements
+    name: Functional Requirements
+    file: ./functional-requirements.md
+    checkpoint: Does each requirement trace back to a user scenario?
+  - sequence: 5
+    id: non-functional-requirements
+    name: Non-Functional Requirements
+    file: ./non-functional-requirements.md
+    checkpoint: Are quality attributes measurable?
+  - sequence: 6
+    id: finalize-spec
+    name: Finalize Specification
+    file: ./finalize-spec.md
+    checkpoint: Is spec complete? Ready for architecture phase?

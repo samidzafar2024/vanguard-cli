@@ -1,0 +1,41 @@
+# Planning Workflow
+#
+# This file defines the step sequence for the plan action.
+# Each step builds on the previous, with checkpoints for validation.
+#
+# To execute: /vanguard.plan <feature-name>
+# To resume: /vanguard.plan --resume <feature-name>
+#
+
+workflow:
+  id: plan
+  name: Planning
+  description: Break down a technical plan into executable tasks
+
+entryConditions:
+  - Approved technical plan from /vanguard.architect
+
+finalOutputs:
+  - .vanguard/tasks/{feature}/task-*.md
+
+steps:
+  - sequence: 1
+    id: review-plan
+    name: Review Plan
+    file: ./review-plan.md
+    checkpoint: Do I understand what needs to be built and in what order?
+  - sequence: 2
+    id: identify-tasks
+    name: Identify Tasks
+    file: ./identify-tasks.md
+    checkpoint: Is each task small enough to complete in one session?
+  - sequence: 3
+    id: sequence-tasks
+    name: Sequence Tasks
+    file: ./sequence-tasks.md
+    checkpoint: Can each task be started once its dependencies are done?
+  - sequence: 4
+    id: write-tasks
+    name: Write Task Files
+    file: ./write-tasks.md
+    checkpoint: Can a developer pick up any task and know exactly what to do?

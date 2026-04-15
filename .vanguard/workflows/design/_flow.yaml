@@ -1,0 +1,57 @@
+# Design Workflow
+#
+# This file defines the step sequence for the design action.
+# Each step builds on the previous, with checkpoints for validation.
+#
+# To execute: /vanguard.design <feature-name>
+# To resume: /vanguard.design --resume <feature-name>
+#
+
+workflow:
+  id: design
+  name: Design
+  description: Create UX/UI design from a specification
+
+entryConditions:
+  - Approved specification from /vanguard.specify
+  - User personas and scenarios defined
+
+finalOutputs:
+  - .vanguard/specs/{feature}-frontend-spec.md
+
+steps:
+  - sequence: 1
+    id: understand-users
+    name: Understand Users
+    file: ./understand-users.md
+    checkpoint: Do I understand how users should FEEL using this?
+  - sequence: 2
+    id: define-experience
+    name: Define Experience Principles
+    file: ./define-experience.md
+    checkpoint: Do principles capture the essence of the desired experience?
+  - sequence: 3
+    id: map-user-journeys
+    name: Map User Journeys
+    file: ./map-user-journeys.md
+    checkpoint: Do journeys cover all key interactions?
+  - sequence: 4
+    id: visual-foundation
+    name: Visual Foundation
+    file: ./visual-foundation.md
+    checkpoint: Does visual foundation support experience principles?
+  - sequence: 5
+    id: component-strategy
+    name: Component Strategy
+    file: ./component-strategy.md
+    checkpoint: Are components reusable across the application?
+  - sequence: 6
+    id: accessibility-audit
+    name: Accessibility Audit
+    file: ./accessibility-audit.md
+    checkpoint: Does every interaction meet WCAG 2.1 AA?
+  - sequence: 7
+    id: finalize-frontend-spec
+    name: Finalize Frontend Spec
+    file: ./finalize-frontend-spec.md
+    checkpoint: Is the frontend spec complete and actionable?

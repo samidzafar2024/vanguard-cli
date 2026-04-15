@@ -1,0 +1,10 @@
+# Vanguard Project Configuration
+#
+# This file is user-owned — Vanguard will not overwrite it after creation.
+
+project:
+  name: vanguard-cli
+  type: greenfield
+  track: team
+
+architecture: mvc-interactors

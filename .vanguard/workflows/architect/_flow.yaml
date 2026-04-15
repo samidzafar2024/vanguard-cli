@@ -1,0 +1,46 @@
+# Architecture Workflow
+#
+# This file defines the step sequence for the architect action.
+# Each step builds on the previous, with checkpoints for validation.
+#
+# To execute: /vanguard.architect <feature-name>
+# To resume: /vanguard.architect --resume <feature-name>
+#
+
+workflow:
+  id: architect
+  name: Architecture
+  description: Create a technical plan from a specification
+
+entryConditions:
+  - Approved specification from /vanguard.specify
+
+finalOutputs:
+  - .vanguard/plans/{feature}.md
+
+steps:
+  - sequence: 1
+    id: review-spec
+    name: Review Specification
+    file: ./review-spec.md
+    checkpoint: Do I understand the technical implications of each requirement?
+  - sequence: 2
+    id: design-components
+    name: Design Components
+    file: ./design-components.md
+    checkpoint: Do components follow the architecture pattern?
+  - sequence: 3
+    id: define-data-models
+    name: Define Data Models
+    file: ./define-data-models.md
+    checkpoint: Are data models complete and correctly typed?
+  - sequence: 4
+    id: define-apis
+    name: Define APIs
+    file: ./define-apis.md
+    checkpoint: Are APIs clean, consistent, and well-documented?
+  - sequence: 5
+    id: finalize-plan
+    name: Finalize Plan
+    file: ./finalize-plan.md
+    checkpoint: Is the plan complete enough for task breakdown?

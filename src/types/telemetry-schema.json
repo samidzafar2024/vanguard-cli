@@ -1,0 +1,347 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://localhost:3000/schemas/telemetry-v1.json",
+	"title": "Vanguard Telemetry API Schema",
+	"description": "Shared schema contract between vanguard-cli and vanguard-web for telemetry ingestion",
+	"version": "1.0.0",
+	"definitions": {
+		"TelemetryEvent": {
+			"type": "object",
+			"required": ["eventId", "timestamp", "sessionId", "eventType"],
+			"properties": {
+				"eventId": {
+					"type": "string",
+					"description": "Unique identifier for the event (UUID)"
+				},
+				"timestamp": {
+					"type": "string",
+					"format": "date-time",
+					"description": "ISO 8601 timestamp of when the event occurred"
+				},
+				"sessionId": {
+					"type": "string",
+					"description": "Claude Code session identifier"
+				},
+				"projectName": {
+					"type": ["string", "null"],
+					"description": "Name of the project (normalized, hyphens instead of underscores)"
+				},
+				"projectPath": {
+					"type": ["string", "null"],
+					"description": "Absolute file path to the project root"
+				},
+				"gitBranch": {
+					"type": ["string", "null"],
+					"description": "Current git branch name"
+				},
+				"eventType": {
+					"type": "string",
+					"enum": ["message", "commit", "tool_call", "error"],
+					"description": "Type of event"
+				},
+				"eventSubtype": {
+					"type": ["string", "null"],
+					"description": "Event subtype (e.g., 'user', 'assistant' for messages)"
+				},
+				"eventSource": {
+					"type": ["string", "null"],
+					"description": "Source of the event (e.g., 'claude-code')"
+				},
+				"phase": {
+					"type": ["string", "null"],
+					"enum": [
+						null,
+						"discover",
+						"brainstorm",
+						"specify",
+						"clarify",
+						"architect",
+						"plan",
+						"implement",
+						"review"
+					],
+					"description": "Vanguard methodology phase"
+				},
+				"persona": {
+					"type": ["string", "null"],
+					"enum": [
+						null,
+						"analyst",
+						"pm",
+						"architect",
+						"sm",
+						"dev",
+						"qa",
+						"ux",
+						"modarch",
+						"brainstorm",
+						"devops",
+						"rails-architect"
+					],
+					"description": "Vanguard persona/role"
+				},
+				"detectionMethod": {
+					"type": ["string", "null"],
+					"enum": [null, "slash_command", "keyword", "context", "filename"],
+					"description": "How the phase/persona was detected"
+				},
+				"detectionConfidence": {
+					"type": ["number", "null"],
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Confidence score for phase/persona detection (0-1)"
+				},
+				"messageUuid": {
+					"type": ["string", "null"],
+					"description": "UUID of associated Claude message"
+				},
+				"commitSha": {
+					"type": ["string", "null"],
+					"description": "Git commit SHA if event is a commit"
+				},
+				"toolCallId": {
+					"type": ["string", "null"],
+					"description": "ID of the tool call if event is a tool_call"
+				},
+				"inputTokens": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"outputTokens": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"cacheReadTokens": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"cacheWriteTokens": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"linesAdded": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"linesRemoved": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"filesChanged": {
+					"type": ["integer", "null"],
+					"minimum": 0
+				},
+				"durationMs": {
+					"type": ["integer", "null"],
+					"minimum": 0,
+					"description": "Duration of the event in milliseconds"
+				},
+				"provider": {
+					"type": ["string", "null"],
+					"description": "AI provider (e.g., 'anthropic')"
+				},
+				"model": {
+					"type": ["string", "null"],
+					"description": "Model identifier (e.g., 'claude-opus-4-5')"
+				},
+				"attributes": {
+					"type": ["object", "null"],
+					"description": "Additional event-specific attributes as JSON",
+					"additionalProperties": true
+				}
+			}
+		},
+		"TelemetryBatch": {
+			"type": "object",
+			"required": [
+				"batchId",
+				"clientVersion",
+				"clientOs",
+				"machineId",
+				"batchTimestamp",
+				"eventCount",
+				"events"
+			],
+			"properties": {
+				"batchId": {
+					"type": "string",
+					"format": "uuid",
+					"description": "Unique identifier for this batch (UUID)"
+				},
+				"clientVersion": {
+					"type": "string",
+					"description": "CLI version (semver)"
+				},
+				"clientOs": {
+					"type": "string",
+					"description": "Operating system (e.g., 'darwin', 'linux', 'win32')"
+				},
+				"machineId": {
+					"type": "string",
+					"description": "Unique machine identifier"
+				},
+				"batchTimestamp": {
+					"type": "string",
+					"format": "date-time",
+					"description": "When the batch was created"
+				},
+				"eventCount": {
+					"type": "integer",
+					"minimum": 0,
+					"description": "Number of events in this batch"
+				},
+				"checksum": {
+					"type": ["string", "null"],
+					"description": "SHA256 checksum of events array for integrity verification"
+				},
+				"compressedSize": {
+					"type": ["integer", "null"],
+					"minimum": 0,
+					"description": "Size of compressed payload in bytes"
+				},
+				"events": {
+					"type": "array",
+					"items": { "$ref": "#/definitions/TelemetryEvent" },
+					"description": "Array of telemetry events"
+				},
+				"embeddings": {
+					"type": ["array", "null"],
+					"items": { "$ref": "#/definitions/TelemetryEmbedding" },
+					"description": "Optional pre-computed embeddings"
+				}
+			}
+		},
+		"TelemetryEmbedding": {
+			"type": "object",
+			"required": ["contentHash", "content", "contentType", "sessionId"],
+			"properties": {
+				"contentHash": {
+					"type": "string",
+					"description": "SHA256 hash of content for deduplication"
+				},
+				"content": {
+					"type": "string",
+					"description": "Text content that was embedded"
+				},
+				"contentType": {
+					"type": "string",
+					"enum": ["message", "commit", "file_change"],
+					"description": "Type of content"
+				},
+				"tokenCount": {
+					"type": ["integer", "null"],
+					"minimum": 0,
+					"description": "Number of tokens in content"
+				},
+				"sessionId": {
+					"type": "string",
+					"description": "Associated session ID"
+				},
+				"projectName": {
+					"type": ["string", "null"]
+				},
+				"messageUuid": {
+					"type": ["string", "null"]
+				},
+				"commitSha": {
+					"type": ["string", "null"]
+				},
+				"phase": {
+					"type": ["string", "null"]
+				}
+			}
+		},
+		"IngestResponse": {
+			"type": "object",
+			"required": [
+				"success",
+				"batchId",
+				"eventsReceived",
+				"eventsInserted",
+				"eventsDeduplicated",
+				"embeddingsReceived",
+				"embeddingsInserted",
+				"rateLimitRemaining",
+				"rateLimitResetAt"
+			],
+			"properties": {
+				"success": {
+					"type": "boolean",
+					"description": "Whether the ingestion was successful"
+				},
+				"batchId": {
+					"type": "string",
+					"description": "Echo back the batch ID"
+				},
+				"eventsReceived": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"eventsInserted": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"eventsDeduplicated": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"embeddingsReceived": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"embeddingsInserted": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"rateLimitRemaining": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"rateLimitResetAt": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"errors": {
+					"type": ["array", "null"],
+					"items": { "$ref": "#/definitions/IngestError" }
+				}
+			}
+		},
+		"IngestError": {
+			"type": "object",
+			"required": ["code", "message"],
+			"properties": {
+				"eventId": {
+					"type": ["string", "null"],
+					"description": "ID of the event that failed (if applicable)"
+				},
+				"code": {
+					"type": "string",
+					"enum": [
+						"INVALID_AUTH",
+						"INVALID_API_KEY",
+						"EXPIRED_API_KEY",
+						"INVALID_BATCH",
+						"CHECKSUM_MISMATCH",
+						"INVALID_EVENT",
+						"INTERNAL_ERROR"
+					]
+				},
+				"message": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "object",
+	"oneOf": [
+		{
+			"title": "Batch Ingestion Request",
+			"$ref": "#/definitions/TelemetryBatch"
+		},
+		{
+			"title": "Ingestion Response",
+			"$ref": "#/definitions/IngestResponse"
+		}
+	]
+}

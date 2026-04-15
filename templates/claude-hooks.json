@@ -1,0 +1,16 @@
+{
+	"_comment": "Copy this to .claude/settings.json in your project to enable Vanguard memory hooks",
+	"hooks": {
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "vanguard memory hook pre-task \"$PROMPT\"",
+						"timeout": 10
+					}
+				]
+			}
+		]
+	}
+}

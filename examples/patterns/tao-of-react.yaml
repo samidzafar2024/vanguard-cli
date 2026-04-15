@@ -1,0 +1,210 @@
+# Tao of React Pattern
+# Based on https://alexkondov.com/tao-of-react/
+#
+# Place this file in .vanguard/patterns/ to enable these conventions
+# for React/Next.js projects.
+
+id: tao-of-react
+name: Tao of React
+description: |
+  A collection of React best practices and conventions based on
+  Alex Kondov's "Tao of React". These principles promote clean,
+  maintainable, and scalable React applications.
+source: "https://alexkondov.com/tao-of-react/"
+
+applicableStacks:
+  - nextjs-app-router
+  - nextjs-pages-router
+  - react
+  - react-vite
+
+applicableArchitectures: []  # Applies to all architectures
+
+principles:
+  - name: Components Should Do One Thing
+    description: A component should ideally do one thing. Break large components into smaller ones.
+    rationale: Smaller components are easier to test, understand, and reuse.
+
+  - name: Keep Components Small
+    description: If a component exceeds 200-300 lines, consider splitting it.
+    rationale: Large components indicate multiple responsibilities.
+
+  - name: Avoid Hasty Abstractions
+    description: Don't create abstractions until you have at least three similar implementations.
+    rationale: Premature abstraction leads to over-engineering and unnecessary complexity.
+
+  - name: Organize by Feature
+    description: Group related files by feature rather than by type.
+    rationale: Feature-based organization makes it easier to understand and modify a feature.
+
+  - name: Colocate Related Files
+    description: Keep files that change together close to each other.
+    rationale: Reduces cognitive load when working on a feature.
+
+  - name: Favor Explicit Over Implicit
+    description: Be explicit about component behavior, avoid clever tricks.
+    rationale: Explicit code is easier to understand and debug.
+
+  - name: Lift State Thoughtfully
+    description: Only lift state when necessary. Start with local state.
+    rationale: Over-lifting state leads to unnecessary re-renders and complexity.
+
+  - name: Use Composition Over Configuration
+    description: Prefer composing components over configuring them with many props.
+    rationale: Composition is more flexible and easier to understand.
+
+antiPatterns:
+  - name: Prop Drilling
+    description: Passing props through many component layers
+    badExample: |
+      function App({ user }) {
+        return <Layout user={user} />;
+      }
+      function Layout({ user }) {
+        return <Sidebar user={user} />;
+      }
+      function Sidebar({ user }) {
+        return <UserInfo user={user} />;
+      }
+    goodExample: |
+      const UserContext = createContext(null);
+      function App({ user }) {
+        return (
+          <UserContext.Provider value={user}>
+            <Layout />
+          </UserContext.Provider>
+        );
+      }
+    fix: Use React Context or a state management library for deeply nested data.
+
+  - name: God Components
+    description: Components with too many responsibilities
+    fix: Break into smaller, focused components. Each component should have a single responsibility.
+
+  - name: Excessive useEffect
+    description: Using useEffect for derived state or synchronous operations
+    badExample: |
+      const [fullName, setFullName] = useState('');
+      useEffect(() => {
+        setFullName(`${firstName} ${lastName}`);
+      }, [firstName, lastName]);
+    goodExample: |
+      const fullName = `${firstName} ${lastName}`;
+    fix: Derive state directly or use useMemo for expensive calculations.
+
+  - name: Business Logic in Components
+    description: Complex business logic mixed with UI code
+    fix: Extract business logic into custom hooks or utility functions.
+
+fileOrganization: |
+  src/
+  ├── components/          # Shared UI components
+  │   ├── Button/
+  │   │   ├── Button.tsx
+  │   │   ├── Button.test.tsx
+  │   │   └── index.ts
+  │   └── ...
+  ├── features/            # Feature-based modules
+  │   ├── auth/
+  │   │   ├── components/
+  │   │   ├── hooks/
+  │   │   ├── utils/
+  │   │   └── index.ts
+  │   └── ...
+  ├── hooks/               # Shared custom hooks
+  ├── utils/               # Shared utilities
+  └── types/               # Shared TypeScript types
+
+namingConventions:
+  components: PascalCase (e.g., UserProfile.tsx)
+  hooks: camelCase with 'use' prefix (e.g., useAuth.ts)
+  utilities: camelCase (e.g., formatDate.ts)
+  constants: SCREAMING_SNAKE_CASE
+  types: PascalCase (e.g., UserProfile, ApiResponse)
+
+examples:
+  - name: Feature-Based Component
+    description: A component organized following Tao of React principles
+    filename: features/auth/components/LoginForm.tsx
+    code: |
+      import { useState } from 'react';
+      import { useAuth } from '../hooks/useAuth';
+      import { Button } from '@/components/Button';
+      import { Input } from '@/components/Input';
+
+      interface LoginFormProps {
+        onSuccess?: () => void;
+      }
+
+      export function LoginForm({ onSuccess }: LoginFormProps) {
+        const [email, setEmail] = useState('');
+        const [password, setPassword] = useState('');
+        const { login, isLoading, error } = useAuth();
+
+        const handleSubmit = async (e: React.FormEvent) => {
+          e.preventDefault();
+          const success = await login({ email, password });
+          if (success) onSuccess?.();
+        };
+
+        return (
+          <form onSubmit={handleSubmit}>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+            />
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+            />
+            {error && <p className="error">{error}</p>}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Log In'}
+            </Button>
+          </form>
+        );
+      }
+
+  - name: Custom Hook
+    description: Extracting logic into a reusable hook
+    filename: features/auth/hooks/useAuth.ts
+    code: |
+      import { useState, useCallback } from 'react';
+      import { authApi } from '../api/auth';
+
+      interface UseAuthReturn {
+        login: (credentials: { email: string; password: string }) => Promise<boolean>;
+        logout: () => Promise<void>;
+        isLoading: boolean;
+        error: string | null;
+      }
+
+      export function useAuth(): UseAuthReturn {
+        const [isLoading, setIsLoading] = useState(false);
+        const [error, setError] = useState<string | null>(null);
+
+        const login = useCallback(async (credentials: { email: string; password: string }) => {
+          setIsLoading(true);
+          setError(null);
+
+          try {
+            await authApi.login(credentials);
+            return true;
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Login failed');
+            return false;
+          } finally {
+            setIsLoading(false);
+          }
+        }, []);
+
+        const logout = useCallback(async () => {
+          await authApi.logout();
+        }, []);
+
+        return { login, logout, isLoading, error };
+      }

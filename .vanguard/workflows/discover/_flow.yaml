@@ -1,0 +1,41 @@
+# Discovery Workflow
+#
+# This file defines the step sequence for the discover action.
+# Each step builds on the previous, with checkpoints for validation.
+#
+# To execute: /vanguard.discover <feature-name>
+# To resume: /vanguard.discover --resume <feature-name>
+#
+
+workflow:
+  id: discover
+  name: Discovery
+  description: Analyze existing codebase or explore a new problem space
+
+entryConditions:
+  - New project or feature area to explore
+
+finalOutputs:
+  - .vanguard/specs/discovery.md
+
+steps:
+  - sequence: 1
+    id: understand-context
+    name: Understand Context
+    file: ./understand-context.md
+    checkpoint: Do I understand what we are trying to discover?
+  - sequence: 2
+    id: explore-landscape
+    name: Explore Landscape
+    file: ./explore-landscape.md
+    checkpoint: Do I have a high-level map of the territory?
+  - sequence: 3
+    id: identify-risks
+    name: Identify Risks
+    file: ./identify-risks.md
+    checkpoint: Have I surfaced key risks and constraints?
+  - sequence: 4
+    id: document-findings
+    name: Document Findings
+    file: ./document-findings.md
+    checkpoint: Does this give a clear picture and actionable next steps?

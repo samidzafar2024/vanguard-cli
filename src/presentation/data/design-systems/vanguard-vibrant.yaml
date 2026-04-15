@@ -1,0 +1,199 @@
+id: vanguard-vibrant
+name: Copoint Vibrant
+version: 1.0.0
+description: Bold, energetic design with vibrant colors. Perfect for creative projects, marketing sites, and consumer-facing applications.
+isDark: false
+
+colors:
+  primary:
+    50: '#fef2f2'
+    100: '#fee2e2'
+    200: '#fecaca'
+    300: '#fca5a5'
+    400: '#f87171'
+    500: '#ef4444'
+    600: '#dc2626'
+    700: '#b91c1c'
+    800: '#991b1b'
+    900: '#7f1d1d'
+    950: '#450a0a'
+
+  secondary:
+    50: '#f0fdfa'
+    100: '#ccfbf1'
+    200: '#99f6e4'
+    300: '#5eead4'
+    400: '#2dd4bf'
+    500: '#14b8a6'
+    600: '#0d9488'
+    700: '#0f766e'
+    800: '#115e59'
+    900: '#134e4a'
+    950: '#042f2e'
+
+  accent:
+    50: '#fefce8'
+    100: '#fef9c3'
+    200: '#fef08a'
+    300: '#fde047'
+    400: '#facc15'
+    500: '#eab308'
+    600: '#ca8a04'
+    700: '#a16207'
+    800: '#854d0e'
+    900: '#713f12'
+    950: '#422006'
+
+  neutral:
+    50: '#fafafa'
+    100: '#f5f5f5'
+    200: '#e5e5e5'
+    300: '#d4d4d4'
+    400: '#a3a3a3'
+    500: '#737373'
+    600: '#525252'
+    700: '#404040'
+    800: '#262626'
+    900: '#171717'
+    950: '#0a0a0a'
+
+  semantic:
+    success:
+      light: '#d1fae5'
+      base: '#10b981'
+      dark: '#047857'
+    warning:
+      light: '#fed7aa'
+      base: '#fb923c'
+      dark: '#ea580c'
+    error:
+      light: '#fee2e2'
+      base: '#ef4444'
+      dark: '#dc2626'
+    info:
+      light: '#dbeafe'
+      base: '#3b82f6'
+      dark: '#1d4ed8'
+
+typography:
+  fontFamilies:
+    sans:
+      - 'Poppins'
+      - 'system-ui'
+      - '-apple-system'
+      - 'BlinkMacSystemFont'
+      - 'Segoe UI'
+      - 'Roboto'
+      - 'sans-serif'
+    serif:
+      - 'Playfair Display'
+      - 'Georgia'
+      - 'serif'
+    mono:
+      - 'Source Code Pro'
+      - 'Consolas'
+      - 'Monaco'
+      - 'monospace'
+
+  scale:
+    xs: '0.75rem'
+    sm: '0.875rem'
+    base: '1rem'
+    lg: '1.125rem'
+    xl: '1.25rem'
+    2xl: '1.5rem'
+    3xl: '1.875rem'
+    4xl: '2.25rem'
+    5xl: '3rem'
+    6xl: '3.75rem'
+    7xl: '4.5rem'
+    8xl: '6rem'
+    9xl: '8rem'
+
+  weights:
+    light: 300
+    normal: 400
+    medium: 500
+    semibold: 600
+    bold: 700
+    extrabold: 800
+
+  lineHeights:
+    tight: '1.25'
+    snug: '1.375'
+    normal: '1.5'
+    relaxed: '1.625'
+    loose: '2'
+
+spacing:
+  0: '0'
+  0.5: '0.125rem'
+  1: '0.25rem'
+  1.5: '0.375rem'
+  2: '0.5rem'
+  2.5: '0.625rem'
+  3: '0.75rem'
+  3.5: '0.875rem'
+  4: '1rem'
+  5: '1.25rem'
+  6: '1.5rem'
+  7: '1.75rem'
+  8: '2rem'
+  9: '2.25rem'
+  10: '2.5rem'
+  11: '2.75rem'
+  12: '3rem'
+  14: '3.5rem'
+  16: '4rem'
+  20: '5rem'
+  24: '6rem'
+  28: '7rem'
+  32: '8rem'
+  36: '9rem'
+  40: '10rem'
+  44: '11rem'
+  48: '12rem'
+  52: '13rem'
+  56: '14rem'
+  60: '15rem'
+  64: '16rem'
+  72: '18rem'
+  80: '20rem'
+  96: '24rem'
+
+radii:
+  none: '0'
+  sm: '0.25rem'
+  base: '0.5rem'
+  md: '0.75rem'
+  lg: '1rem'
+  xl: '1.25rem'
+  2xl: '1.5rem'
+  3xl: '2rem'
+  full: '9999px'
+
+shadows:
+  sm: '0 2px 4px 0 rgb(0 0 0 / 0.08)'
+  base: '0 4px 6px -1px rgb(0 0 0 / 0.12), 0 2px 4px -2px rgb(0 0 0 / 0.08)'
+  md: '0 6px 12px -2px rgb(0 0 0 / 0.15), 0 3px 7px -3px rgb(0 0 0 / 0.1)'
+  lg: '0 12px 24px -4px rgb(0 0 0 / 0.18), 0 6px 12px -6px rgb(0 0 0 / 0.12)'
+  xl: '0 24px 48px -8px rgb(0 0 0 / 0.22), 0 12px 24px -10px rgb(0 0 0 / 0.15)'
+  2xl: '0 32px 64px -16px rgb(0 0 0 / 0.28)'
+  inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.08)'
+  none: 'none'
+
+components:
+  button:
+    primary: 'bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl px-5 py-3 shadow-lg hover:shadow-xl transition-all'
+    secondary: 'bg-secondary-400 hover:bg-secondary-500 text-white font-semibold rounded-xl px-5 py-3 shadow-md hover:shadow-lg transition-all'
+    ghost: 'bg-transparent hover:bg-primary-50 text-primary-600 font-semibold rounded-xl px-5 py-3 border-2 border-primary-500'
+    destructive: 'bg-error-base hover:bg-error-dark text-white font-semibold rounded-xl px-5 py-3 shadow-lg hover:shadow-xl transition-all'
+
+  card:
+    default: 'bg-white border-2 border-neutral-200 rounded-2xl p-8 shadow-md hover:shadow-xl transition-shadow'
+    elevated: 'bg-gradient-to-br from-white to-neutral-50 rounded-2xl p-8 shadow-2xl'
+    bordered: 'bg-white border-4 border-primary-400 rounded-2xl p-8'
+
+  input:
+    default: 'bg-white border-2 border-neutral-300 rounded-xl px-4 py-3 text-lg focus:ring-4 focus:ring-primary-200 focus:border-primary-500 transition-all'
+    error: 'bg-white border-2 border-error-base rounded-xl px-4 py-3 text-lg focus:ring-4 focus:ring-error-light focus:border-error-base transition-all'
