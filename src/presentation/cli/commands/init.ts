@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { dirname } from 'node:path'
@@ -6,72 +7,20 @@ import * as p from '@clack/prompts'
 import { Command } from 'commander'
 import gradient from 'gradient-string'
 import pc from 'picocolors'
-import { HookWiringService } from '../../../application/services/hook-wiring.service.js'
-import { InitSchemaService } from '../../../application/services/init-schema.service.js'
-import { McpWiringService } from '../../../application/services/mcp-wiring.service.js'
-import type { MethodologyInstallResult } from '../../../application/services/methodology.service.js'
-import { MethodologyService } from '../../../application/services/methodology.service.js'
-import { ProjectRegistrationService } from '../../../application/services/project-registration.service.js'
 import {
 	type ProjectSummary,
 	VanguardGeneratorService,
 } from '../../../application/services/vanguard-generator.service.js'
 import { InitMemoryUseCase } from '../../../application/use-cases/memory/init-memory.use-case.js'
-import type { BundlePhase } from '../../../domain/entities/methodology-bundle.js'
-import { InitSchemaAdapter } from '../../../infrastructure/api/init-schema.adapter.js'
-import { MethodologyBundleAdapter } from '../../../infrastructure/api/methodology-bundle.adapter.js'
-import { FsFileReader } from '../../../infrastructure/file-reader.js'
 import { FsFileWriter } from '../../../infrastructure/file-writer.js'
-import { GitService } from '../../../infrastructure/git.service.js'
-import { type DetectedProject, ProjectDetector } from '../../../infrastructure/project-detector.js'
-import { authRepository } from '../../../infrastructure/repositories/auth.repository.js'
+import { ProjectDetector } from '../../../infrastructure/project-detector.js'
 import { FileMemoryConfigRepository } from '../../../infrastructure/repositories/memory-config.repository.js'
-import type { SmartDefaults } from '../../cli/prompts/dynamic-prompt-renderer.js'
-import { DynamicPromptRenderer } from '../../cli/prompts/dynamic-prompt-renderer.js'
-import { requireAuth } from '../utils/require-auth.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-/**
- * Map ProjectDetector stackIds to server-side choice slugs.
- * Keys are detector stackIds, values are server choice slugs.
- */
-const DETECTOR_TO_SERVER_SLUG: Record<string, string> = {
-	'nextjs-typescript': 'nextjs-app-router',
-	'nestjs-typescript': 'nestjs',
-	'fastapi-python': 'fastapi',
-	'django-python': 'django',
-	'flask-python': 'flask',
-	'aspnet-csharp': 'aspnet-webapi',
-}
-
-/**
- * Convert ProjectDetector results to server-compatible SmartDefaults.
- */
-function mapDetectedToServerSlugs(detected: DetectedProject): SmartDefaults {
-	const defaults: Record<string, string> = {}
-	if (detected.language) defaults.language = detected.language
-	if (detected.stackId) {
-		defaults.stack = DETECTOR_TO_SERVER_SLUG[detected.stackId] ?? detected.stackId
-	}
-	if (detected.orm) defaults.orm = detected.orm
-	if (detected.database) defaults.database = detected.database
-	if (detected.testFramework) defaults['unit-test'] = detected.testFramework
-	return defaults
-}
-
-/**
- * Map CLI flags to server group slugs for the renderer's flagOverrides.
- */
-function buildFlagOverrides(options: Record<string, unknown>): Record<string, string> {
-	const overrides: Record<string, string> = {}
-	if (typeof options.stack === 'string') overrides.stack = options.stack
-	if (typeof options.architecture === 'string') overrides.architecture = options.architecture
-	if (typeof options.type === 'string') overrides['project-type'] = options.type
-	if (typeof options.track === 'string') overrides.track = options.track
-	return overrides
-}
+// Path to the CLI's own bundled methodology files
+const CLI_ROOT = path.join(__dirname, '..', '..', '..', '..')
 
 /**
  * Sanitize a directory name into a valid project name.
@@ -115,15 +64,6 @@ function detectProjectType(rootPath: string): 'greenfield' | 'brownfield' {
 		}
 	}
 
-	try {
-		const files = fs.readdirSync(rootPath)
-		if (files.some((f: string) => f.endsWith('.csproj') || f.endsWith('.sln'))) {
-			return 'brownfield'
-		}
-	} catch {
-		// Ignore errors
-	}
-
 	return 'greenfield'
 }
 
@@ -131,7 +71,7 @@ function detectProjectType(rootPath: string): 'greenfield' | 'brownfield' {
 const vanguardGradient = gradient(['#00d4ff', '#7c3aed', '#c026d3'])
 
 function getCliVersion(): string {
-	const pkgPath = path.join(__dirname, '..', '..', '..', '..', 'package.json')
+	const pkgPath = path.join(CLI_ROOT, 'package.json')
 	const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
 	return pkg.version ?? '0.0.0'
 }
@@ -148,278 +88,209 @@ function showBanner(): void {
 	console.log(vanguardGradient.multiline(logo))
 	console.log(pc.dim(`    v${getCliVersion()}`))
 	console.log(pc.dim('    Discover → Specify → Architect → Plan → Implement'))
-	console.log(pc.dim('    by Vanguard AI'))
 	console.log('')
 }
 
 // ============================================================================
-// Init Step Functions
+// Local Choices
 // ============================================================================
 
-interface InitContext {
-	rootPath: string
-	cliVersion: string
-	registrationService: ProjectRegistrationService
-	gitService: GitService
-	options: Record<string, unknown>
-	canceled: () => never
-}
+const STACKS = [
+	{ value: 'nextjs-app-router', label: 'Next.js (App Router)' },
+	{ value: 'express-typescript', label: 'Express.js (TypeScript)' },
+	{ value: 'fastapi', label: 'FastAPI (Python)' },
+	{ value: 'django', label: 'Django (Python)' },
+	{ value: 'nestjs', label: 'NestJS (TypeScript)' },
+	{ value: 'aspnet-webapi', label: 'ASP.NET Web API (C#)' },
+	{ value: 'react-vite', label: 'React + Vite' },
+	{ value: 'plain-typescript', label: 'Plain TypeScript' },
+	{ value: 'plain-python', label: 'Plain Python' },
+	{ value: 'other', label: 'Other' },
+]
 
-async function promptProjectName(ctx: InitContext, defaultProjectName: string): Promise<string> {
-	if (ctx.options.yes) {
-		return (ctx.options.name ?? defaultProjectName) as string
-	}
-	const result = await p.text({
-		message: 'Project name',
-		defaultValue: (ctx.options.name ?? defaultProjectName) as string,
-		placeholder: defaultProjectName,
-		validate: (value) => {
-			if (!value) return 'Name is required'
-			if (!/^[a-z0-9-]+$/.test(value)) {
-				return 'Name must be lowercase alphanumeric with hyphens'
-			}
-			return undefined
-		},
-	})
-	if (p.isCancel(result)) ctx.canceled()
-	return result as string
-}
+const ARCHITECTURES = [
+	{ value: 'mvc-interactors', label: 'MVC with Interactors' },
+	{ value: 'clean-architecture', label: 'Clean Architecture (DDD)' },
+	{ value: 'simple-layered', label: 'Simple Layered (Routes → Services → Data)' },
+	{ value: 'hexagonal', label: 'Hexagonal / Ports & Adapters' },
+	{ value: 'other', label: 'Other / None' },
+]
 
-function runSmartDetection(
-	ctx: InitContext,
-	detectedProjectType: 'greenfield' | 'brownfield',
-): SmartDefaults {
-	if (detectedProjectType !== 'brownfield') return {}
+const TRACKS = [
+	{ value: 'solo', label: 'Solo — just me' },
+	{ value: 'team', label: 'Team — small team' },
+	{ value: 'enterprise', label: 'Enterprise — large org' },
+]
 
-	const detector = new ProjectDetector()
-	const detected = detector.detect(ctx.rootPath)
-	const smartDefaults = mapDetectedToServerSlugs(detected)
+// ============================================================================
+// Copy Methodology Files from CLI Bundle
+// ============================================================================
 
-	if (!ctx.options.yes && Object.keys(smartDefaults).length > 0) {
-		const detectedItems: string[] = []
-		if (detected.language) detectedItems.push(`Language: ${detected.language}`)
-		if (detected.framework) detectedItems.push(`Framework: ${detected.framework}`)
-		if (detected.orm) detectedItems.push(`ORM: ${detected.orm}`)
-		if (detected.database) detectedItems.push(`Database: ${detected.database}`)
-		if (detected.testFramework) detectedItems.push(`Testing: ${detected.testFramework}`)
-		p.note(detectedItems.join('\n'), 'Detected from existing project')
-	}
+/**
+ * Recursively copy a directory, returning count of files written.
+ */
+function copyDirRecursive(src: string, dest: string): number {
+	if (!fs.existsSync(src)) return 0
 
-	return smartDefaults
-}
+	fs.mkdirSync(dest, { recursive: true })
+	let count = 0
 
-async function confirmSelections(
-	ctx: InitContext,
-	projectName: string,
-	entries: ReadonlyArray<{ groupName: string; choiceLabel: string }>,
-): Promise<void> {
-	const summaryLines = [
-		`${pc.bold('Project')}: ${projectName}`,
-		...entries.map((e) => `${pc.bold(e.groupName)}: ${e.choiceLabel}`),
-	]
-	p.note(summaryLines.join('\n'), 'Configuration')
+	for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+		const srcPath = path.join(src, entry.name)
+		const destPath = path.join(dest, entry.name)
 
-	if (!ctx.options.yes) {
-		const confirmed = await p.confirm({
-			message: 'Create project with these settings?',
-			initialValue: true,
-		})
-		if (p.isCancel(confirmed) || !confirmed) ctx.canceled()
-	}
-}
-
-async function registerProject(
-	ctx: InitContext,
-	projectName: string,
-	selections: Record<string, string>,
-	detectedProjectType: 'greenfield' | 'brownfield',
-): Promise<{ projectId: string | undefined; orgSlug: string | undefined }> {
-	const registerSpinner = p.spinner()
-	registerSpinner.start('Registering project')
-
-	let projectId: string | undefined
-	let orgSlug: string | undefined
-
-	try {
-		const result = await ctx.registrationService.register({
-			name: projectName,
-			type: (selections['project-type'] ?? detectedProjectType) as ProjectSummary['type'],
-			track: (selections.track ?? 'team') as ProjectSummary['track'],
-			projectPath: ctx.rootPath,
-			gitRemoteUrl: ctx.gitService.getRemoteUrl(),
-			defaultBranch: ctx.gitService.getDefaultBranch(),
-			selections,
-		})
-
-		if (result.success && result.projectId) {
-			projectId = result.projectId
-			orgSlug = result.orgSlug
-			registerSpinner.stop(
-				result.isNew
-					? 'Project registered with Vanguard'
-					: 'Project linked to existing registration',
-			)
+		if (entry.isDirectory()) {
+			count += copyDirRecursive(srcPath, destPath)
 		} else {
-			registerSpinner.stop(`Could not register project: ${result.error ?? 'unknown'}`)
+			fs.copyFileSync(srcPath, destPath)
+			count++
 		}
-	} catch (_error) {
-		registerSpinner.stop('Could not register project (network error)')
 	}
 
-	return { projectId, orgSlug }
+	return count
 }
 
-async function fetchBundle(
-	projectId: string,
-	cliVersion: string,
-	writer: FsFileWriter,
-	rootPath: string,
-): Promise<{ phases: readonly BundlePhase[]; result: MethodologyInstallResult }> {
-	const bundleSpinner = p.spinner()
-	bundleSpinner.start('Fetching methodology from server')
+/**
+ * Copy bundled methodology files from CLI installation to target project.
+ */
+function copyMethodologyFiles(rootPath: string): number {
+	let count = 0
 
-	try {
-		const methodologyService = new MethodologyService(
-			new MethodologyBundleAdapter(cliVersion),
-			writer,
-			new FsFileReader(),
-		)
-		const result = await methodologyService.install(projectId, rootPath)
-		bundleSpinner.stop(`Wrote ${result.filesWritten} methodology files from server`)
-		return { phases: result.phases, result }
-	} catch (error) {
-		bundleSpinner.stop('Failed to fetch methodology bundle')
-		p.log.error(
-			error instanceof Error
-				? `Could not fetch methodology: ${error.message}`
-				: 'Could not reach Vanguard server',
-		)
-		p.log.info('The methodology bundle is required. Please check your connection and try again.')
-		process.exit(1)
-	}
-}
-
-async function generateLocalFiles(
-	writer: FsFileWriter,
-	projectName: string,
-	selections: Record<string, string>,
-	detectedProjectType: 'greenfield' | 'brownfield',
-	rootPath: string,
-): Promise<{ ok: number; failed: Array<{ path: { toString(): string }; error?: string }> }> {
-	const generateSpinner = p.spinner()
-	generateSpinner.start('Generating Vanguard artifacts')
-
-	const generator = new VanguardGeneratorService()
-	const summary: ProjectSummary = {
-		name: projectName,
-		type: (selections['project-type'] ?? detectedProjectType) as ProjectSummary['type'],
-		track: (selections.track ?? 'team') as ProjectSummary['track'],
-		rootPath,
-		selections,
-	}
-	const localFiles = generator.generateLocalFilesFromSelections(summary)
-	const allWriteResults = await writer.writeAll(localFiles)
-	const ok = allWriteResults.filter((r) => r.success).length
-	generateSpinner.stop(`Generated ${ok} local files`)
-
-	return { ok, failed: allWriteResults.filter((r) => !r.success) }
-}
-
-async function wireMcp(
-	writer: FsFileWriter,
-	rootPath: string,
-	projectId: string | undefined,
-): Promise<void> {
-	const mcpSpinner = p.spinner()
-	mcpSpinner.start('Configuring MCP')
-
-	try {
-		const token = await authRepository.getAccessToken()
-		const mcpEndpoint = await authRepository.getApiEndpoint()
-
-		if (token && mcpEndpoint) {
-			const mcpWiring = new McpWiringService(writer, new FsFileReader())
-			const mcpResult = await mcpWiring.wire({
-				projectRoot: rootPath,
-				token,
-				mcpUrl: `${mcpEndpoint}/api/mcp`,
-				...(projectId !== undefined && { projectId }),
-			})
-
-			const mcpParts: string[] = []
-			if (mcpResult.mcpJsonWritten) mcpParts.push('.mcp.json')
-			if (mcpResult.settingsWritten) mcpParts.push('settings.local.json')
-			if (mcpResult.gitignoreUpdated) mcpParts.push('.gitignore updated')
-
-			mcpSpinner.stop(
-				mcpResult.connectivityOk
-					? `MCP configured (${mcpParts.join(', ')})`
-					: `MCP configured locally (${mcpParts.join(', ')}) — connectivity check failed`,
-			)
-		} else {
-			mcpSpinner.stop('MCP skipped (no credentials)')
-		}
-	} catch {
-		mcpSpinner.stop('MCP configuration skipped')
-	}
-}
-
-async function wireHooks(
-	writer: FsFileWriter,
-	rootPath: string,
-	methodologyResult: MethodologyInstallResult,
-): Promise<void> {
-	if (!methodologyResult.hookConfig) return
-
-	try {
-		const hookWiring = new HookWiringService(writer, new FsFileReader())
-		const hookResult = await hookWiring.wire({
-			projectRoot: rootPath,
-			hookConfig: methodologyResult.hookConfig,
-			executableFiles: methodologyResult.executableFiles,
-		})
-
-		if (hookResult.settingsMerged || hookResult.executableCount > 0) {
-			const parts: string[] = []
-			if (hookResult.settingsMerged) parts.push('settings.json')
-			if (hookResult.executableCount > 0) parts.push(`${hookResult.executableCount} hook script(s)`)
-			p.log.success(`Hooks configured (${parts.join(', ')})`)
-		}
-	} catch {
-		// Hook wiring is non-critical
-	}
-}
-
-function showNextSteps(rootPath: string, bundlePhases: readonly BundlePhase[]): void {
-	const commandLines =
-		bundlePhases.length > 0
-			? bundlePhases.map((phase) => {
-					const cmd = `/vanguard.${phase.slug}`
-					return `  ${cmd.padEnd(21)} - ${phase.description}`
-				})
-			: [
-					'  /vanguard.discover   - Analyze codebase or problem space',
-					'  /vanguard.brainstorm - Creative ideation session',
-					'  /vanguard.constitute - Review project principles',
-					'  /vanguard.specify    - Create feature specification',
-					'  /vanguard.design     - Create UX/UI design',
-					'  /vanguard.clarify    - Resolve spec ambiguities',
-					'  /vanguard.architect  - Design technical architecture',
-					'  /vanguard.plan       - Break into granular tasks',
-					'  /vanguard.implement  - Write code following patterns',
-					'  /vanguard.review     - QA review implementation',
-					'  /vanguard.extend     - Add stacks, architectures, or modules',
-				]
-
-	p.note(
-		`${pc.cyan('cd')} ${rootPath === process.cwd() ? '.' : rootPath}
-${pc.cyan('cat')} .vanguard/constitution.md  ${pc.dim('# Read project principles')}
-${pc.cyan('cat')} CLAUDE.md                   ${pc.dim('# Claude Code context')}
-
-${pc.bold('Available commands')}:
-${commandLines.join('\n')}`,
-		'Next steps',
+	// Copy .claude/agents/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.claude', 'agents'),
+		path.join(rootPath, '.claude', 'agents'),
 	)
+
+	// Copy .claude/skills/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.claude', 'skills'),
+		path.join(rootPath, '.claude', 'skills'),
+	)
+
+	// Copy .claude/rules/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.claude', 'rules'),
+		path.join(rootPath, '.claude', 'rules'),
+	)
+
+	// Copy .claude/hooks/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.claude', 'hooks'),
+		path.join(rootPath, '.claude', 'hooks'),
+	)
+
+	// Copy .vanguard/templates/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.vanguard', 'templates'),
+		path.join(rootPath, '.vanguard', 'templates'),
+	)
+
+	// Copy .vanguard/workflows/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.vanguard', 'workflows'),
+		path.join(rootPath, '.vanguard', 'workflows'),
+	)
+
+	// Copy .vanguard/commands/
+	count += copyDirRecursive(
+		path.join(CLI_ROOT, '.vanguard', 'commands'),
+		path.join(rootPath, '.vanguard', 'commands'),
+	)
+
+	// Copy .vanguard/constitution.md
+	const constitutionSrc = path.join(CLI_ROOT, '.vanguard', 'constitution.md')
+	if (fs.existsSync(constitutionSrc)) {
+		fs.mkdirSync(path.join(rootPath, '.vanguard'), { recursive: true })
+		fs.copyFileSync(constitutionSrc, path.join(rootPath, '.vanguard', 'constitution.md'))
+		count++
+	}
+
+	return count
+}
+
+// ============================================================================
+// Wire Hooks Locally
+// ============================================================================
+
+function wireHooksLocally(rootPath: string): void {
+	const settingsPath = path.join(rootPath, '.claude', 'settings.json')
+	const hooksTemplatePath = path.join(CLI_ROOT, 'templates', 'claude-hooks.json')
+
+	if (!fs.existsSync(hooksTemplatePath)) return
+
+	try {
+		const hookTemplate = JSON.parse(fs.readFileSync(hooksTemplatePath, 'utf-8'))
+		let existing: Record<string, unknown> = {}
+
+		if (fs.existsSync(settingsPath)) {
+			existing = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+		}
+
+		// Merge hooks into settings
+		existing.hooks = { ...(existing.hooks as Record<string, unknown> ?? {}), ...hookTemplate.hooks }
+
+		fs.mkdirSync(path.dirname(settingsPath), { recursive: true })
+		fs.writeFileSync(settingsPath, JSON.stringify(existing, null, '\t'), 'utf-8')
+	} catch {
+		// Non-critical
+	}
+}
+
+// ============================================================================
+// Generate CLAUDE.md
+// ============================================================================
+
+function generateClaudeMd(rootPath: string, projectName: string, architecture: string): void {
+	const archLabel = ARCHITECTURES.find((a) => a.value === architecture)?.label ?? architecture
+
+	const content = `# ${projectName}
+
+> This file provides context for Claude Code. It is auto-generated by Vanguard.
+
+## Vanguard Structure
+
+\`\`\`
+.claude/
+├── agents/       → Agent personas (analyst, architect, developer, etc.)
+├── skills/       → Slash commands (/vanguard.discover, /vanguard.implement, etc.)
+├── rules/        → Project principles
+└── hooks/        → Memory hooks
+
+.vanguard/
+├── config.yaml   → Project configuration
+├── constitution.md → Project principles
+├── templates/    → Spec, plan, task templates
+├── workflows/    → Phase workflows
+├── commands/     → Command definitions
+├── specs/        → Generated specifications
+├── plans/        → Generated plans
+└── tasks/        → Generated tasks
+\`\`\`
+
+## Architecture: ${archLabel}
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| \`/vanguard.discover\` | Analyze codebase or explore problem space |
+| \`/vanguard.brainstorm\` | Creative ideation session |
+| \`/vanguard.specify\` | Create feature specification |
+| \`/vanguard.clarify\` | Resolve spec ambiguities |
+| \`/vanguard.architect\` | Design technical architecture |
+| \`/vanguard.plan\` | Break into granular tasks |
+| \`/vanguard.implement\` | Write code following patterns |
+| \`/vanguard.review\` | QA review implementation |
+| \`/vanguard.design\` | Create UX/UI design |
+| \`/vanguard.constitute\` | Review project principles |
+| \`/vanguard.extend\` | Add stacks or modules |
+
+---
+_Generated by Vanguard CLI v${getCliVersion()}_
+`
+
+	fs.writeFileSync(path.join(rootPath, 'CLAUDE.md'), content, 'utf-8')
 }
 
 // ============================================================================
@@ -435,11 +306,8 @@ export const initCommand = new Command('init')
 	.option('-s, --stack <stack>', 'Tech stack ID')
 	.option('-a, --architecture <arch>', 'Architecture pattern ID')
 	.option('-y, --yes', 'Accept all defaults')
-	.option('--dev', 'Use development server (localhost:3000)')
 	.action(async (targetPath: string, options) => {
-		await requireAuth({ dev: options.dev })
-
-		const rootPath = targetPath === '.' ? process.cwd() : targetPath
+		const rootPath = path.resolve(targetPath === '.' ? process.cwd() : targetPath)
 
 		showBanner()
 		p.intro(pc.bgCyan(pc.black(' Initialize Project ')))
@@ -449,111 +317,188 @@ export const initCommand = new Command('init')
 			process.exit(1)
 		}
 
-		const cliVersion = getCliVersion()
-		const accessToken = await authRepository.getAccessToken()
-		const apiEndpoint = await authRepository.getApiEndpoint()
+		// Detect existing project
+		const detectedProjectType = detectProjectType(rootPath)
+		let smartDefaults: Record<string, string> = {}
 
-		if (!apiEndpoint || !accessToken) {
-			p.log.error('Missing credentials. Please run `vanguard login` first.')
-			process.exit(1)
+		if (detectedProjectType === 'brownfield') {
+			const detector = new ProjectDetector()
+			const detected = detector.detect(rootPath)
+
+			if (detected.language || detected.framework) {
+				const detectedItems: string[] = []
+				if (detected.language) detectedItems.push(`Language: ${detected.language}`)
+				if (detected.framework) detectedItems.push(`Framework: ${detected.framework}`)
+				if (detected.orm) detectedItems.push(`ORM: ${detected.orm}`)
+				if (detected.database) detectedItems.push(`Database: ${detected.database}`)
+				if (detected.testFramework) detectedItems.push(`Testing: ${detected.testFramework}`)
+				p.note(detectedItems.join('\n'), 'Detected from existing project')
+			}
+
+			if (detected.stackId) smartDefaults.stack = detected.stackId
 		}
 
-		const ctx: InitContext = {
+		// --- Prompts ---
+		const dirName = rootPath.split('/').pop() ?? 'my-project'
+		const defaultProjectName = sanitizeProjectName(dirName)
+
+		const projectName = options.yes
+			? ((options.name ?? defaultProjectName) as string)
+			: await (async () => {
+					const result = await p.text({
+						message: 'Project name',
+						defaultValue: (options.name ?? defaultProjectName) as string,
+						placeholder: defaultProjectName,
+						validate: (value) => {
+							if (!value) return 'Name is required'
+							if (!/^[a-z0-9-]+$/.test(value))
+								return 'Name must be lowercase alphanumeric with hyphens'
+							return undefined
+						},
+					})
+					if (p.isCancel(result)) canceled()
+					return result as string
+				})()
+
+		const track = options.yes
+			? ((options.track ?? 'team') as string)
+			: await (async () => {
+					const result = await p.select({
+						message: 'Project scale',
+						options: TRACKS,
+						initialValue: (options.track as string) ?? 'team',
+					})
+					if (p.isCancel(result)) canceled()
+					return result as string
+				})()
+
+		const stack = options.yes
+			? ((options.stack ?? smartDefaults.stack ?? 'plain-typescript') as string)
+			: await (async () => {
+					const result = await p.select({
+						message: 'Tech stack',
+						options: STACKS,
+						initialValue: (options.stack as string) ?? smartDefaults.stack,
+					})
+					if (p.isCancel(result)) canceled()
+					return result as string
+				})()
+
+		const architecture = options.yes
+			? ((options.architecture ?? 'mvc-interactors') as string)
+			: await (async () => {
+					const result = await p.select({
+						message: 'Architecture pattern',
+						options: ARCHITECTURES,
+						initialValue: (options.architecture as string) ?? 'mvc-interactors',
+					})
+					if (p.isCancel(result)) canceled()
+					return result as string
+				})()
+
+		// --- Confirm ---
+		const stackLabel = STACKS.find((s) => s.value === stack)?.label ?? stack
+		const archLabel = ARCHITECTURES.find((a) => a.value === architecture)?.label ?? architecture
+		const trackLabel = TRACKS.find((t) => t.value === track)?.label ?? track
+
+		p.note(
+			[
+				`${pc.bold('Project')}: ${projectName}`,
+				`${pc.bold('Type')}: ${detectedProjectType}`,
+				`${pc.bold('Scale')}: ${trackLabel}`,
+				`${pc.bold('Stack')}: ${stackLabel}`,
+				`${pc.bold('Architecture')}: ${archLabel}`,
+			].join('\n'),
+			'Configuration',
+		)
+
+		if (!options.yes) {
+			const confirmed = await p.confirm({
+				message: 'Create project with these settings?',
+				initialValue: true,
+			})
+			if (p.isCancel(confirmed) || !confirmed) canceled()
+		}
+
+		// --- Generate ---
+		const selections: Record<string, string> = {
+			'project-type': detectedProjectType,
+			track,
+			stack,
+			architecture,
+		}
+
+		// Generate local project ID
+		const projectId = `local-${crypto.randomUUID()}`
+		fs.mkdirSync(path.join(rootPath, '.vanguard'), { recursive: true })
+		fs.writeFileSync(path.join(rootPath, '.vanguard', '.project-id'), projectId, 'utf-8')
+
+		// Generate manifest + config
+		const genSpinner = p.spinner()
+		genSpinner.start('Generating Vanguard artifacts')
+
+		const writer = new FsFileWriter()
+		const generator = new VanguardGeneratorService()
+		const summary: ProjectSummary = {
+			name: projectName,
+			type: detectedProjectType as ProjectSummary['type'],
+			track: track as ProjectSummary['track'],
 			rootPath,
-			cliVersion,
-			registrationService: new ProjectRegistrationService(apiEndpoint, accessToken, cliVersion),
-			gitService: new GitService(rootPath),
-			options,
-			canceled,
+			selections,
 		}
+		const localFiles = generator.generateLocalFilesFromSelections(summary)
+		await writer.writeAll(localFiles)
+		genSpinner.stop('Generated manifest and config')
 
-		// Fetch schema from server (FR-001)
-		const schemaSpinner = p.spinner()
-		schemaSpinner.start('Fetching options from server')
+		// Copy methodology files from CLI bundle
+		const methodSpinner = p.spinner()
+		methodSpinner.start('Installing methodology files')
+		const methodCount = copyMethodologyFiles(rootPath)
+		methodSpinner.stop(`Installed ${methodCount} methodology files`)
 
+		// Generate CLAUDE.md
+		generateClaudeMd(rootPath, projectName, architecture)
+		p.log.success('Generated CLAUDE.md')
+
+		// Wire hooks
+		wireHooksLocally(rootPath)
+		p.log.success('Configured hooks')
+
+		// Init memory (non-critical)
 		try {
-			const schemaService = new InitSchemaService(new InitSchemaAdapter(cliVersion))
-			const schema = await schemaService.fetch()
-			const orderedGroups = schemaService.getOrderedGroups(schema)
-			schemaSpinner.stop(`Loaded ${orderedGroups.length} option groups from server`)
-
-			const dirName = rootPath.split('/').pop() ?? 'my-project'
-			const defaultProjectName = sanitizeProjectName(dirName)
-			const detectedProjectType = detectProjectType(rootPath)
-
-			const projectName = await promptProjectName(ctx, defaultProjectName)
-			const smartDefaults = runSmartDetection(ctx, detectedProjectType)
-
-			const renderer = new DynamicPromptRenderer()
-			const promptResult = await renderer.render(
-				orderedGroups,
-				smartDefaults,
-				{ yes: !!options.yes, flagOverrides: buildFlagOverrides(options) },
-				canceled,
-			)
-
-			await confirmSelections(ctx, projectName, promptResult.entries)
-
-			const selections = Object.fromEntries(Object.entries(promptResult.selections)) as Record<
-				string,
-				string
-			>
-
-			const { projectId, orgSlug } = await registerProject(
-				ctx,
-				projectName,
-				selections,
-				detectedProjectType,
-			)
-
-			if (!projectId) {
-				p.log.error(
-					'Project registration failed — cannot fetch methodology bundle without a project ID.',
-				)
-				p.log.info('Please check your connection and try again.')
-				process.exit(1)
-			}
-
-			const writer = new FsFileWriter()
-			const bundle = await fetchBundle(projectId, cliVersion, writer, rootPath)
-			const writeResults = await generateLocalFiles(
-				writer,
-				projectName,
-				selections,
-				detectedProjectType,
-				rootPath,
-			)
-
-			await wireMcp(writer, rootPath, projectId)
-			await wireHooks(writer, rootPath, bundle.result)
-
-			try {
-				const memoryConfigRepo = new FileMemoryConfigRepository(rootPath)
-				const initMemory = new InitMemoryUseCase(memoryConfigRepo)
-				await initMemory.execute({
-					projectName,
-					...(orgSlug !== undefined && { orgSlug }),
-				})
-			} catch {
-				// Memory init is non-critical
-			}
-
-			if (writeResults.failed.length > 0) {
-				p.log.warn(`${writeResults.failed.length} files failed to write:`)
-				for (const f of writeResults.failed) {
-					p.log.error(`  ${f.path.toString()}: ${f.error}`)
-				}
-			}
-
-			showNextSteps(rootPath, bundle.phases)
-			p.outro(pc.green('Vanguard initialized successfully!'))
-		} catch (error) {
-			schemaSpinner.stop('Failed to fetch options from server')
-			p.log.error(
-				error instanceof Error
-					? error.message
-					: 'Could not reach Vanguard server. Please check your connection.',
-			)
-			process.exit(1)
+			const memoryConfigRepo = new FileMemoryConfigRepository(rootPath)
+			const initMemory = new InitMemoryUseCase(memoryConfigRepo)
+			await initMemory.execute({ projectName })
+		} catch {
+			// Non-critical
 		}
+
+		// Create empty dirs for specs/plans/tasks
+		for (const dir of ['specs', 'plans', 'tasks', 'reviews']) {
+			const dirPath = path.join(rootPath, '.vanguard', dir)
+			fs.mkdirSync(dirPath, { recursive: true })
+			const gitkeep = path.join(dirPath, '.gitkeep')
+			if (!fs.existsSync(gitkeep)) {
+				fs.writeFileSync(gitkeep, '', 'utf-8')
+			}
+		}
+
+		// --- Done ---
+		p.note(
+			`${pc.cyan('cd')} ${rootPath === process.cwd() ? '.' : rootPath}
+${pc.cyan('cat')} CLAUDE.md                   ${pc.dim('# Claude Code context')}
+
+${pc.bold('Available commands')}:
+  /vanguard.discover   - Analyze codebase or problem space
+  /vanguard.brainstorm - Creative ideation session
+  /vanguard.specify    - Create feature specification
+  /vanguard.clarify    - Resolve spec ambiguities
+  /vanguard.architect  - Design technical architecture
+  /vanguard.plan       - Break into granular tasks
+  /vanguard.implement  - Write code following patterns
+  /vanguard.review     - QA review implementation`,
+			'Next steps',
+		)
+
+		p.outro(pc.green('Vanguard initialized successfully!'))
 	})
