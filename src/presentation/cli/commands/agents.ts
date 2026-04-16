@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import * as p from '@clack/prompts'
 import { Command } from 'commander'
 import pc from 'picocolors'
@@ -21,6 +22,29 @@ function getVanguardDir(): string {
 		process.exit(1)
 	}
 	return vanguardDir
+}
+
+function getPackageRoot(): string {
+	return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+}
+
+function copyDirRecursive(src: string, dest: string, force: boolean): number {
+	if (!fs.existsSync(src)) return 0
+	let count = 0
+	const entries = fs.readdirSync(src, { withFileTypes: true })
+	for (const entry of entries) {
+		const srcPath = path.join(src, entry.name)
+		const destPath = path.join(dest, entry.name)
+		if (entry.isDirectory()) {
+			fs.mkdirSync(destPath, { recursive: true })
+			count += copyDirRecursive(srcPath, destPath, force)
+		} else {
+			if (!force && fs.existsSync(destPath)) continue
+			fs.copyFileSync(srcPath, destPath)
+			count++
+		}
+	}
+	return count
 }
 
 function loadConfig(): VanguardConfig {
@@ -391,6 +415,18 @@ agentsCommand
 			cmdCount++
 		}
 
+		// Copy bundled skills from templates
+		const skillsDir = path.join(claudeDir, 'skills')
+		fs.mkdirSync(skillsDir, { recursive: true })
+		const pkgRoot = getPackageRoot()
+		const bundledSkillsDir = path.join(pkgRoot, 'templates', 'skills')
+		const skillCount = copyDirRecursive(bundledSkillsDir, skillsDir, options.force ?? false)
+
+		// Copy bundled agents from templates (overrides generated ones with richer versions)
+		const bundledAgentsDir = path.join(pkgRoot, 'templates', 'agents')
+		const bundledAgentCount = copyDirRecursive(bundledAgentsDir, agentsDir, options.force ?? false)
+		agentCount += bundledAgentCount
+
 		// Generate rules (constitution link)
 		const constitutionRule = `# Project Constitution
 
@@ -459,6 +495,7 @@ Specialized AI personas available in \`.claude/agents/\`:
 		console.log('')
 		console.log(pc.bold('  Created:'))
 		console.log(`  ${pc.cyan('.claude/agents/')}     — ${agentCount} agent personas`)
+		console.log(`  ${pc.cyan('.claude/skills/')}     — ${skillCount} skills`)
 		console.log(`  ${pc.cyan('.claude/commands/')}   — ${cmdCount} slash commands`)
 		console.log(`  ${pc.cyan('.claude/rules/')}      — Project rules`)
 		console.log(`  ${pc.cyan('CLAUDE.md')}           — Project context for Claude`)
