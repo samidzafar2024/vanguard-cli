@@ -1,0 +1,25 @@
+[
+  {
+    "id": "f_authz001",
+    "wave": 4, "agent": "authz-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0004",
+    "type": "authorization_bypass",
+    "target": {"url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/roles", "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io", "path": "/rbac/roles", "param": null},
+    "title": "HTTP method override and GraphQL introspection blocked by global auth middleware",
+    "description": "HTTP method override headers (X-HTTP-Method-Override, X-Method-Override) and GraphQL introspection all return 401 — consistent with global auth middleware that runs before any route handler. No unauthenticated authorization bypass found.",
+    "severity": "info",
+    "confidence": 0.95,
+    "evidence": {"type": "http_response", "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/roles", "snippet": "[see evidence_quarantined]", "artifact_path": null},
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["authz", "method-override", "graphql"],
+    "deduplication_key": "authz-vuln:livelystone-c1480484:method_override_blocked",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "authz-vuln wave 4",
+    "evidence_safe": "HTTP method override and GraphQL introspection both return 401 — global auth middleware blocks all routes unauthenticated",
+    "evidence_quarantined": null
+  }
+]

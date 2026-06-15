@@ -1,0 +1,3 @@
+@include(shared/_filesystem.txt)
+
+Run: `save-deliverable --type AWS_VULN --content 'aws-vuln complete'`. Then say "Done".

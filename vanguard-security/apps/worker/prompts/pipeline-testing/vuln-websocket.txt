@@ -1,0 +1,7 @@
+@include(shared/_filesystem.txt)
+
+Run these two commands in order:
+1. `save-deliverable --type WEBSOCKET_ANALYSIS --content 'vuln-websocket complete'`
+2. `bash -c 'echo '"'"'{"vulnerabilities":[]}'"'"' > {{REPO_PATH}}/.vanguard/deliverables/websocket_exploitation_queue.json'`
+
+Then say "Done".

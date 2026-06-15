@@ -1,0 +1,172 @@
+[
+  {
+    "id": "f_c1a4b2e8",
+    "wave": 2,
+    "agent": "cloud-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "cloud_misconfiguration",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "CORS Reflects Any Origin with Access-Control-Allow-Credentials: true (incl. null origin)",
+    "description": "The Azure Container Apps backend reflects any arbitrary Origin header verbatim with Access-Control-Allow-Credentials: true, confirmed for attacker-controlled domains and the null origin. This allows any attacker-controlled web page (including sandboxed iframes) to make credentialed cross-origin requests and read authenticated API responses, enabling cross-origin session and token theft.",
+    "severity": "critical",
+    "confidence": 0.98,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": ["cross_origin_api_access", "credential_theft"],
+    "cve_refs": [],
+    "tags": ["azure", "cloud", "cors", "credentials", "critical"],
+    "deduplication_key": "cloud-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:cors-wildcard-credentials",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "cloud-vuln wave 2",
+    "evidence_safe": "HTTP 200 on /health with Origin:https://attacker.com returns Access-Control-Allow-Origin:https://attacker.com + Access-Control-Allow-Credentials:true. Origin:null also reflected.",
+    "evidence_quarantined": "Request: curl -H 'Origin: https://attacker.com' https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health\nResponse headers: access-control-allow-origin: https://attacker.com\naccess-control-allow-credentials: true\naccess-control-allow-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS\naccess-control-allow-headers: Content-Type,Authorization\n\nOrigin: null also reflected with credentials: true"
+  },
+  {
+    "id": "f_a3d9f1c7",
+    "wave": 2,
+    "agent": "cloud-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://login.microsoftonline.com/copointdata.com/v2.0/.well-known/openid-configuration",
+      "host": "login.microsoftonline.com",
+      "path": "/copointdata.com/v2.0/.well-known/openid-configuration",
+      "param": null
+    },
+    "title": "Azure AD Tenant ID and Full OAuth Endpoint Enumeration for copointdata.com",
+    "description": "The Azure AD tenant ID (9046c3d1-04fe-4afe-9e4f-9217f27b5a66) for copointdata.com is fully enumerable via public Microsoft endpoints. Organization name 'CoPoint AI', all OAuth 2.0/OIDC/SAML/WS-Fed endpoints, and 5 active signing certificates with validity windows are disclosed. This enables targeted phishing, token endpoint abuse, and token forgery research.",
+    "severity": "low",
+    "confidence": 1.0,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://login.microsoftonline.com/copointdata.com/v2.0/.well-known/openid-configuration",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["azure", "cloud", "azure-ad", "information-disclosure", "tenant-enumeration"],
+    "deduplication_key": "cloud-vuln:login.microsoftonline.com:tenant-enumeration-copointdata",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "cloud-vuln wave 2",
+    "evidence_safe": "Tenant ID 9046c3d1-04fe-4afe-9e4f-9217f27b5a66 confirmed. Org brand: CoPoint AI. Managed namespace. All OIDC/SAML/WS-Fed endpoints disclosed.",
+    "evidence_quarantined": "issuer: https://login.microsoftonline.com/9046c3d1-04fe-4afe-9e4f-9217f27b5a66/v2.0\nGetUserRealm: NameSpaceType=Managed, FederationBrandName=CoPoint AI, DomainName=copointdata.com, IsFederatedNS=false\nFederation metadata: 5 signing certs accessible at /federationmetadata/2007-06/federationmetadata.xml"
+  },
+  {
+    "id": "f_b7e2d4a9",
+    "wave": 2,
+    "agent": "cloud-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "ssrf_candidate",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/api",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/api",
+      "param": "url"
+    },
+    "title": "Post-Auth SSRF Candidate: URL-Accepting Parameters May Reach Azure IMDS",
+    "description": "The backend exposes URL-accepting parameters (url, redirect, target, proxy, callback, webhook) on /api that return HTTP 401 when unauthenticated. If authentication is bypassed via the CORS+nonce chain, these parameters could be used to proxy requests to the Azure IMDS endpoint (http://169.254.169.254/metadata/identity/oauth2/token) to retrieve managed identity access tokens for Azure resource pivot.",
+    "severity": "medium",
+    "confidence": 0.6,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/api",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["authenticated"],
+    "grants": ["azure_imds_token_retrieval", "managed_identity_pivot"],
+    "cve_refs": [],
+    "tags": ["azure", "cloud", "ssrf", "imds", "managed-identity"],
+    "deduplication_key": "cloud-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:ssrf-imds-candidate",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "cloud-vuln wave 2",
+    "evidence_safe": "All /api?<param>=<IMDS-URL> returned HTTP 401 unauthenticated. Parameters url/redirect/target/proxy/callback/webhook confirmed to exist and gate on auth.",
+    "evidence_quarantined": "curl /api?url=http%3A%2F%2F169.254.169.254%2Fmetadata%2Finstance... -> HTTP 401 {\"error\":\"Unauthorized: no valid token\"}\nSame for redirect, target, proxy, callback, webhook params. Auth required before SSRF test can confirm reachability."
+  },
+  {
+    "id": "f_e5f8c3b1",
+    "wave": 2,
+    "agent": "cloud-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0043",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "Technology Stack and Environment Label Disclosed via Unauthenticated Health Endpoint",
+    "description": "The /health endpoint returns HTTP 200 without authentication, disclosing the runtime (X-Powered-By: Express, indicating Node.js) and environment label (env:production). This narrows attacker tooling selection and confirms production scope.",
+    "severity": "low",
+    "confidence": 1.0,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["azure", "cloud", "information-disclosure", "fingerprinting"],
+    "deduplication_key": "cloud-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:health-info-disclosure",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "cloud-vuln wave 2",
+    "evidence_safe": "GET /health returns HTTP 200 with body {\"status\":\"ok\",\"env\":\"production\"} and X-Powered-By: Express header. No auth required.",
+    "evidence_quarantined": "HTTP/2 200\nx-powered-by: Express\ncontent-type: application/json\nBody: {\"status\":\"ok\",\"env\":\"production\"}"
+  },
+  {
+    "id": "f_d2a6e9f4",
+    "wave": 2,
+    "agent": "cloud-vuln",
+    "ptes_phase": "reconnaissance",
+    "attack_tactic": "TA0043",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/",
+      "param": null
+    },
+    "title": "Azure Container Apps Environment ID Exposed in FQDN Enabling Sibling Enumeration",
+    "description": "The Container Apps environment name 'livelystone-c1480484' is embedded in the application FQDN. Probing 9 common sibling app name patterns confirmed the environment is live and routable (all returned Azure platform 404s, not DNS NXDOMAIN). No additional sibling apps were found active in this scan, but the environment ID enables targeted future enumeration.",
+    "severity": "info",
+    "confidence": 0.9,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-api.livelystone-c1480484.westus2.azurecontainerapps.io/",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["azure", "cloud", "azure-container-apps", "enumeration", "information-disclosure"],
+    "deduplication_key": "cloud-vuln:livelystone-c1480484.westus2.azurecontainerapps.io:environment-enumeration",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "cloud-vuln wave 2",
+    "evidence_safe": "9 sibling app names probed under livelystone-c1480484.westus2.azurecontainerapps.io. All returned HTTP 404 Azure platform page (not NXDOMAIN). Environment confirmed live.",
+    "evidence_quarantined": "HTTP/2 404 with Azure Container App Unavailable page for: revops, revops-api, revops-worker, revops-prod, api, backend, worker, scheduler, admin. Environment resolves confirming livelystone-c1480484 is an active ACA environment."
+  }
+]

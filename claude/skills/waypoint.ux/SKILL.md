@@ -1,0 +1,38 @@
+---
+description: "Create UX/UI design"
+---
+
+# WayPoint: UX Action
+
+**Project**: bonuscompplatform
+
+## Before You Begin
+
+1. **Read the manifest** at `waypoint.manifest.yaml` to understand:
+   - Current project state and active documents
+   - What specs, plans, and tasks exist
+   - Document summaries for quick context
+
+2. **Check document status** in the manifest:
+   - `specs`: Feature specifications
+   - `plans`: Technical designs
+   - `tasks`: Implementation tasks with status
+
+
+## Usage
+
+Use for user experience design
+
+## After Completion
+
+Update `waypoint.manifest.yaml` to reflect any documents you created or status changes.
+
+---
+
+## Arguments
+
+$ARGUMENTS
+
+---
+
+_WayPoint UX command for unknown stack + MVC with Interactors_

@@ -1,0 +1,49 @@
+## Brain Hints (priority focus, not hard constraints)
+
+The Vanguard hacker brain has analyzed prior waves and produced strategic directives for your wave. The hints below tell you what the brain wants you to focus on, what to deprioritize, and what specific evidence-based leads to chase.
+
+**These are HINTS, not hard constraints.** You retain professional judgement:
+- If a hint says "focus on /api/search SQLi" but you discover an unrelated critical vulnerability mid-analysis, **document both**. Do not skip findings just because they aren't in the hints.
+- If a hint references a credential or finding that doesn't exist when you check, **note it as a refutation** — the brain will use that to update the graph.
+- If a hint suggests a target outside the authorized scope, **refuse and surface to operator**.
+
+### Hint structure
+
+```
+{{BRAIN_HINTS}}
+```
+
+Common hint fields:
+
+| Field | Meaning | How to act |
+|---|---|---|
+| `objective_id` | Which strategic objective you're advancing | Reference in your deliverable's "chain context" section |
+| `supports_chain_pattern` | Named chain from `chain-patterns.yaml` | Read the pattern and follow its sequence |
+| `use_credential_finding` | Finding ID for a leaked/derived credential | Treat that credential as authoritative input |
+| `focus_resources` | Glob patterns or URLs to prioritize | Test these first |
+| `skip_resources` | Targets the brain says are dead ends | Skip unless you find new evidence |
+| `success_signals` | What the brain expects to confirm | Document these explicitly when achieved |
+| `kill_conditions` | When to abort early | Stop the directive if these hit |
+| `expected_outcome` | What "paid off" looks like | Aim for this; the Critic will score against it |
+
+### When hints are empty
+
+If `{{BRAIN_HINTS}}` is empty, missing, or `{}` — you are running without brain orchestration (manual run, first wave, or pipeline-testing mode). Run with full default coverage: probe everything in scope, prioritize by your own professional judgement.
+
+### Reporting back to the brain
+
+In your Findings JSON output, optionally include a `brain_response` field on findings that directly answer a hint:
+
+```json
+{
+  "id": "f_xxx",
+  "...": "...",
+  "brain_response": {
+    "directive_id": "d_002",
+    "outcome": "paid_off | partial | dud | false_positive | surprise | noise",
+    "objective_id": "obj_xxx"
+  }
+}
+```
+
+This lets the Critic skip the inference step and score directly. If you omit `brain_response`, the Critic will infer outcome from severity + tags + evidence.

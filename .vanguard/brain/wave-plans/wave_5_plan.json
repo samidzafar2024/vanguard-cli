@@ -1,0 +1,145 @@
+{
+  "wave": 5,
+  "plan_timestamp": "2026-05-01T14:46:00.000Z",
+  "stop_loop": false,
+  "summary": "Wave 5 leads with auth-exploit (CORS null-origin PoC). All other exploits are gated on getting a session from chain_002. Dispatch auth-exploit first, then remaining exploits in parallel with session hints.",
+  "objectives": [
+    {
+      "id": "obj_011",
+      "description": "Execute CORS null-origin exploit and obtain authenticated session token",
+      "supporting_chain": "chain_002",
+      "priority": "critical",
+      "success_criteria": "Working PoC HTML that steals session token cross-origin via null iframe"
+    },
+    {
+      "id": "obj_012",
+      "description": "Use authenticated session to test SSRF to Azure IMDS",
+      "supporting_chain": "chain_006",
+      "priority": "high",
+      "success_criteria": "IMDS response or managed identity token retrieved"
+    },
+    {
+      "id": "obj_013",
+      "description": "Use authenticated session to test RBAC IDOR privilege escalation",
+      "supporting_chain": "chain_004",
+      "priority": "high",
+      "success_criteria": "Can change own role to admin or read other users data"
+    }
+  ],
+  "directives": [
+    {
+      "agent": "auth-exploit",
+      "priority": "critical",
+      "hints": {
+        "objective_id": "obj_011",
+        "supports_chain_pattern": "chain_002",
+        "focus_resources": ["/auth/me", "CORS null-origin iframe", "/api/auth/session"],
+        "success_signals": ["PoC HTML produced", "auth/me response readable cross-origin", "session token obtained"],
+        "expected_outcome": "Working CORS null-origin exploit PoC HTML file that reads authenticated API response",
+        "backend_host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "technique": "sandboxed iframe with sandbox='allow-scripts' to force null origin, fetch /auth/me with credentials:include, read response body cross-origin due to CORS misconfiguration",
+        "secondary_path": "OIDC nonce absence (chain_003) — if CORS PoC blocked, test nonce replay with attacker-controlled Azure AD app"
+      }
+    },
+    {
+      "agent": "ssrf-exploit",
+      "priority": "high",
+      "hints": {
+        "objective_id": "obj_012",
+        "supports_chain_pattern": "chain_006",
+        "focus_resources": ["/proxy", "/fetch", "/screenshot", "/pdf", "http://169.254.169.254/metadata/"],
+        "success_signals": ["IMDS accessible", "managed identity token retrieved"],
+        "expected_outcome": "With authenticated session, probe SSRF endpoints for Azure IMDS access",
+        "confirmed_endpoints": ["/proxy", "/pdf", "/screenshot", "/fetch", "/render", "/preview", "/import", "/export", "/webhook", "/webhooks", "/callback"],
+        "imds_target_urls": [
+          "http://169.254.169.254/metadata/instance?api-version=2021-02-01",
+          "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2021-02-01&resource=https://management.azure.com/"
+        ],
+        "required_header": "Metadata: true",
+        "session_dependency": "chain_002"
+      }
+    },
+    {
+      "agent": "idor-exploit",
+      "priority": "high",
+      "hints": {
+        "objective_id": "obj_013",
+        "supports_chain_pattern": "chain_004",
+        "focus_resources": ["/rbac/users/{id}/role", "/rbac/roles", "/users"],
+        "expected_outcome": "With auth session, test RBAC IDOR to change own role or access other users data",
+        "session_dependency": "chain_002",
+        "test_vectors": ["self-role-escalation via PATCH", "horizontal user data access via ID iteration", "role list enumeration"]
+      }
+    },
+    {
+      "agent": "authz-exploit",
+      "priority": "high",
+      "hints": {
+        "focus_resources": ["/graphql", "/rbac/roles", "/admin"],
+        "expected_outcome": "With auth, run GraphQL introspection and test for privileged mutations",
+        "session_dependency": "chain_002",
+        "test_vectors": ["GraphQL introspection query", "mutation for role change", "admin endpoint enumeration"]
+      }
+    },
+    {
+      "agent": "injection-exploit",
+      "priority": "medium",
+      "hints": {
+        "focus_resources": ["search/filter/sort params on authenticated endpoints"],
+        "expected_outcome": "With auth, test SQL injection in query params",
+        "session_dependency": "chain_002",
+        "test_vectors": ["?search=', ?filter=1 OR 1=1, ?sort=id; DROP TABLE--", "time-based blind SQLi on filter params"]
+      }
+    },
+    {
+      "agent": "websocket-exploit",
+      "priority": "medium",
+      "hints": {
+        "focus_resources": ["/api/pusher/auth", "private channels", "presence channels"],
+        "expected_outcome": "With auth, enumerate Pusher channels and test data exfil",
+        "session_dependency": "chain_002",
+        "test_vectors": ["subscribe to private-* channels not belonging to own user", "presence channel enumeration for user list disclosure", "channel message interception"]
+      }
+    }
+  ],
+  "deprioritize": [
+    {
+      "agent": "xss-exploit",
+      "reason": "No XSS found in Wave 4, Vercel bot protection active, low value to pursue"
+    }
+  ],
+  "dispatch_order": {
+    "phase_1_sequential": ["auth-exploit"],
+    "phase_2_parallel": ["ssrf-exploit", "idor-exploit", "authz-exploit", "injection-exploit", "websocket-exploit"],
+    "phase_2_gate": "auth-exploit must produce session token before phase_2 dispatch"
+  },
+  "graph_mutations": {
+    "add_nodes": [],
+    "add_edges": [],
+    "update_nodes": [
+      {
+        "id": "n_expr_back",
+        "update": {
+          "wave": 5,
+          "attributes.cors_exploit_ready": true,
+          "attributes.ssrf_endpoints_confirmed": 11
+        }
+      }
+    ],
+    "update_edges": []
+  },
+  "stats": {
+    "total_agents": 7,
+    "critical_priority": 1,
+    "high_priority": 3,
+    "medium_priority": 2,
+    "low_priority": 0,
+    "deprioritized": 1,
+    "chains_active": 3,
+    "chains_secondary": 1,
+    "estimated_session_dependency_agents": 6,
+    "critical_chain_ev": 0.97,
+    "highest_impact_chain": "chain_002",
+    "highest_impact_outcome": "Azure IMDS managed identity token via CORS→auth→SSRF chain"
+  }
+}

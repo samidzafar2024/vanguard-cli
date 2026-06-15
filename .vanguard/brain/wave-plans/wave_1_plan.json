@@ -1,0 +1,276 @@
+{
+  "wave": 1,
+  "plan_timestamp": "2026-05-01T00:00:00.000Z",
+  "stop_loop": false,
+  "summary": "Wave 1 targets three parallel chains: recon agent aggressively enumerates the Express backend for unauthenticated API routes and CORS misconfiguration (chain_002, EV=0.79), pre-recon agent extracts callbackUrl handling and secrets from Next.js bundles to confirm chain_001 exploitability (EV=0.82), and sast agent audits auth code patterns for OIDC state/nonce weaknesses underpinning chain_003 (EV=0.71). The dev-equals-production signal from /health makes chain_002 the primary kill chain — confirmed unauthenticated data routes on a production-config backend represent immediate critical impact.",
+  "objectives": [
+    {
+      "id": "obj_001",
+      "description": "Enumerate all unauthenticated Express API routes on the backend (revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io) and capture CORS preflight headers to determine if credentials-bearing cross-origin requests are permitted. Confirm whether routes beyond /health serve business-logic data without auth middleware.",
+      "supporting_chain": "chain_002",
+      "priority": "critical",
+      "success_criteria": "At least one API route beyond /health responds without Authorization header AND returns application data (not 401/403). CORS Access-Control-Allow-Origin and Access-Control-Allow-Credentials headers captured."
+    },
+    {
+      "id": "obj_002",
+      "description": "Extract and analyze Next.js JavaScript bundles from /_next/static/chunks/ to locate callbackUrl parameter validation logic, backend API base URL, any hardcoded tokens/secrets, and the exact NextAuth.js version in use. Confirm whether CVE-2023-48309 open redirect pattern is applicable.",
+      "supporting_chain": "chain_001",
+      "priority": "critical",
+      "success_criteria": "callbackUrl handling code located in bundle (or absence confirmed), NextAuth.js version identified, backend API URL extracted from bundle, any hardcoded secrets or API keys found."
+    },
+    {
+      "id": "obj_003",
+      "description": "Identify OIDC state parameter entropy, nonce validation logic, and NEXTAUTH_SECRET strength indicators from static analysis of auth-related code patterns. Determine if state parameter can be reused or predicted and if nonce validation is implemented in the Azure AD provider callback handler.",
+      "supporting_chain": "chain_003",
+      "priority": "high",
+      "success_criteria": "State parameter entropy assessed (low entropy = CSRF feasible), nonce validation presence/absence confirmed in NextAuth Azure AD provider config, NEXTAUTH_SECRET strength indicators identified."
+    },
+    {
+      "id": "obj_004",
+      "description": "Fingerprint pay.copointdata.com tech stack and availability status, and probe Pusher channel authorization endpoint for unauthenticated channel subscription.",
+      "supporting_chain": "chain_004",
+      "priority": "medium",
+      "success_criteria": "pay.copointdata.com HTTP response and technology fingerprint obtained. Pusher auth endpoint (/pusher/auth or /api/pusher/auth) located and tested for unauthenticated access."
+    }
+  ],
+  "directives": [
+    {
+      "agent": "recon",
+      "priority": "critical",
+      "hints": {
+        "objective_id": "obj_001",
+        "supports_chain_pattern": "chain_002",
+        "target_primary": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "target_secondary": "https://revops-dev.vercel.app",
+        "focus_resources": [
+          "/api",
+          "/api/v1",
+          "/api/v2",
+          "/v1",
+          "/v2",
+          "/docs",
+          "/swagger",
+          "/swagger.json",
+          "/openapi.json",
+          "/openapi.yaml",
+          "/api-docs",
+          "/health",
+          "/status",
+          "/metrics",
+          "/pusher/auth",
+          "/api/pusher/auth",
+          "/realtime/auth",
+          "/api/leads",
+          "/api/deals",
+          "/api/pipeline",
+          "/api/revenue",
+          "/api/users",
+          "/api/accounts",
+          "/api/contacts",
+          "/api/crm",
+          "/api/auth",
+          "/api/me",
+          "/api/config"
+        ],
+        "skip_resources": [],
+        "cors_probe": {
+          "method": "OPTIONS",
+          "headers": {
+            "Origin": "https://attacker.com",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "Authorization"
+          },
+          "capture_headers": [
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials",
+            "Access-Control-Allow-Methods",
+            "Access-Control-Allow-Headers"
+          ]
+        },
+        "azure_container_sibling_probe": {
+          "namespace": "livelystone-c1480484.westus2.azurecontainerapps.io",
+          "probe_prefixes": [
+            "revops-dev",
+            "revops-prod",
+            "revops-api",
+            "revops-worker",
+            "revops-admin",
+            "api",
+            "backend"
+          ]
+        },
+        "success_signals": [
+          "Any /api/* route returns 200 without Authorization header",
+          "CORS Access-Control-Allow-Origin: * or arbitrary origin reflected",
+          "Access-Control-Allow-Credentials: true with non-null origin",
+          "Swagger/OpenAPI spec accessible unauthenticated (full route enumeration)",
+          "/pusher/auth or /api/pusher/auth returns non-401",
+          "pay.copointdata.com fingerprint obtained",
+          "Sibling Azure Container App discovered"
+        ],
+        "kill_conditions": [
+          "All routes beyond /health return 401 with WWW-Authenticate header indicating global JWT middleware",
+          "Azure WAF or Vercel Edge firewall blocking all enumeration (consistent 403 with WAF signature)"
+        ],
+        "expected_outcome": "Enumerate Express backend route surface, capture CORS headers for cross-origin attack feasibility, locate Pusher auth endpoint, fingerprint pay.copointdata.com, probe Azure Container sibling namespace"
+      }
+    },
+    {
+      "agent": "pre-recon",
+      "priority": "critical",
+      "hints": {
+        "objective_id": "obj_002",
+        "supports_chain_pattern": "chain_001",
+        "target_primary": "https://revops-dev.vercel.app",
+        "focus_resources": [
+          "/_next/static/chunks/pages/_app*.js",
+          "/_next/static/chunks/main*.js",
+          "/_next/static/chunks/framework*.js",
+          "/_next/static/chunks/webpack*.js",
+          "/_next/static/chunks/pages/api/auth*.js",
+          "/_next/static/chunks/*.js",
+          "/api/auth/providers",
+          "/api/auth/session",
+          "/_next/static/chunks/pages/login*.js",
+          "/_next/static/chunks/pages/signin*.js"
+        ],
+        "skip_resources": [],
+        "extraction_targets": [
+          "callbackUrl parameter handling and validation logic (open redirect assessment)",
+          "NextAuth.js version string (confirm CVE-2023-48309 applicability for versions < 4.24.5)",
+          "Backend API base URL (likely revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io but confirm)",
+          "Any NEXTAUTH_URL, NEXTAUTH_SECRET, or NEXT_PUBLIC_* environment variables leaked in bundles",
+          "Hardcoded API keys, tokens, or connection strings",
+          "Azure AD clientId, tenantId, or redirect URIs embedded in client-side code",
+          "Pusher app key and channel configuration",
+          "All internal API route paths (/api/*) referenced in the bundle",
+          "Any debug flags or feature flags indicating development/staging mode",
+          "Authentication redirect flow logic — does callbackUrl get validated against an allowlist?"
+        ],
+        "success_signals": [
+          "callbackUrl validation code found (or confirmed absent — open redirect)",
+          "NextAuth.js version < 4.24.5 identified in bundle (CVE-2023-48309 confirmed applicable)",
+          "NEXT_PUBLIC_API_URL or hardcoded backend URL extracted",
+          "Any API key, secret, or token found in bundle",
+          "Azure AD clientId/tenantId extracted from bundle",
+          "Pusher app key found",
+          "No callbackUrl allowlist found — confirms open redirect candidate"
+        ],
+        "kill_conditions": [],
+        "expected_outcome": "Extract callbackUrl validation logic and NextAuth.js version to confirm chain_001 CVE applicability; discover hardcoded secrets and backend API surface from Next.js static bundles"
+      }
+    },
+    {
+      "agent": "sast",
+      "priority": "high",
+      "hints": {
+        "objective_id": "obj_003",
+        "supports_chain_pattern": "chain_003",
+        "target_primary": "https://revops-dev.vercel.app",
+        "focus_resources": [
+          "NextAuth.js Azure AD provider configuration patterns",
+          "OIDC state parameter generation and validation",
+          "Nonce claim validation in id_token processing",
+          "NEXTAUTH_SECRET entropy and default value patterns",
+          "JWT session encoding (HS256 with weak secret vs RS256)",
+          "Auth middleware patterns in Express backend",
+          "PKCE implementation in authorization code flow",
+          "Multi-tenant vs single-tenant Azure AD configuration"
+        ],
+        "skip_resources": [],
+        "analysis_patterns": [
+          "Missing or predictable state parameter (CSRF in OAuth flow)",
+          "Absent nonce validation in OIDC id_token processing",
+          "NEXTAUTH_SECRET set to default, short, or common value",
+          "Azure AD provider accepting tokens from multiple tenants (multi-tenant misconfiguration)",
+          "JWT signed with HS256 using derivable secret (brute-forceable)",
+          "Express auth middleware applied selectively vs globally (route coverage gaps)",
+          "Missing SameSite=Strict or HttpOnly on session cookies",
+          "Authorization code reuse allowed (PKCE bypass)"
+        ],
+        "success_signals": [
+          "State parameter entropy too low or predictable pattern identified",
+          "Nonce validation absent or bypassable in NextAuth Azure AD callback",
+          "NEXTAUTH_SECRET identified as weak or default (e.g., 'secret', 'changeme', UUID-format)",
+          "Azure AD provider configured as multi-tenant (common_authority endpoint)",
+          "Auth middleware gap found — some Express routes lack JWT validation",
+          "Session cookie misconfiguration (missing HttpOnly, SameSite=None)"
+        ],
+        "kill_conditions": [],
+        "expected_outcome": "Identify OIDC state/nonce weaknesses and NEXTAUTH_SECRET strength to assess chain_003 account takeover feasibility; identify auth middleware coverage gaps in Express backend"
+      }
+    }
+  ],
+  "deprioritize": [
+    {
+      "chain": "chain_005",
+      "reason": "pay.copointdata.com tech stack still uncharacterized — wave 1 recon will fingerprint only; exploitation chain deferred to wave 2 once stack is known"
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [
+      {
+        "id": "n_cors_misconfig",
+        "kind": "vuln_candidate",
+        "label": "CORS Misconfiguration on Express Backend (Credentials-Bearing Cross-Origin)",
+        "value": 4,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "attributes": {
+          "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/",
+          "tags": ["cors", "misconfiguration", "cross-origin", "credentials", "data-exfil"],
+          "lesson_ref": "lesson_0_009"
+        },
+        "evidence_findings": [],
+        "first_seen_wave": 1,
+        "confirmed": false
+      },
+      {
+        "id": "n_nextjs_bundle_secrets",
+        "kind": "vuln_candidate",
+        "label": "Hardcoded Secrets / API Keys in Next.js Static Bundles",
+        "value": 4,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0006",
+        "attributes": {
+          "host": "revops-dev.vercel.app",
+          "url": "https://revops-dev.vercel.app/_next/static/chunks/",
+          "tags": ["secret-disclosure", "nextjs", "bundle", "hardcoded-token"],
+          "lesson_ref": "lesson_0_007"
+        },
+        "evidence_findings": [],
+        "first_seen_wave": 1,
+        "confirmed": false
+      }
+    ],
+    "add_edges": [
+      {
+        "id": "e_backend_to_cors_misconfig",
+        "from_node": "n_expr_back",
+        "to_node": "n_cors_misconfig",
+        "type": "leads_to",
+        "label": "Express backend CORS headers uncaptured — credentials-bearing cross-origin access unassessed (lesson_0_009)",
+        "status": "candidate",
+        "ev": 0.65,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "evidence_findings": []
+      },
+      {
+        "id": "e_prod_app_to_bundle_secrets",
+        "from_node": "n_auth_next",
+        "to_node": "n_nextjs_bundle_secrets",
+        "type": "leads_to",
+        "label": "Next.js static bundles accessible — potential secret disclosure in client-side chunks (lesson_0_007)",
+        "status": "candidate",
+        "ev": 0.60,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0006",
+        "evidence_findings": []
+      }
+    ],
+    "update_nodes": [],
+    "update_edges": []
+  }
+}

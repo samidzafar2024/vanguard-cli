@@ -1,0 +1,104 @@
+[
+  {
+    "id": "f_a3c2e891",
+    "wave": 2,
+    "agent": "ssl-tls-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "tls_misconfiguration",
+    "target": {
+      "url": "https://revops-dev.vercel.app",
+      "host": "revops-dev.vercel.app",
+      "path": "/",
+      "param": null
+    },
+    "title": "Frontend TLS: Strong Cipher Suites Only, TLS 1.2+ with Post-Quantum Key Exchange (Grade A)",
+    "description": "nmap ssl-enum-ciphers confirms frontend supports only TLS 1.2 and TLS 1.3 with Grade A cipher suites. TLS 1.0 and 1.1 are disabled. TLS 1.3 uses post-quantum X25519MLKEM768 key exchange. No weak ciphers detected.",
+    "severity": "info",
+    "confidence": 0.95,
+    "evidence": {
+      "type": "tool_output",
+      "url": "https://revops-dev.vercel.app",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["tls", "ssl", "cipher-suites", "tls12", "tls13"],
+    "deduplication_key": "ssl-tls:revops-dev.vercel.app:cipher-enum",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "ssl-tls-vuln wave 2",
+    "evidence_safe": "nmap ssl-enum-ciphers on port 443: TLS 1.2 (4 ECDHE/DHE-only A-grade ciphers), TLS 1.3 (X25519MLKEM768 post-quantum). Overall least strength: A.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_b7d4f203",
+    "wave": 2,
+    "agent": "ssl-tls-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "tls_misconfiguration",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/",
+      "param": null
+    },
+    "title": "Backend TLS: TLS 1.2+ Only, Valid Microsoft Azure Certificate, Expires Aug 25 2026",
+    "description": "Backend enforces TLS 1.2+ (protocol_version alert on TLS 1.0/1.1). TLS 1.3 negotiates TLS_AES_256_GCM_SHA384 over x25519. Certificate issued by Microsoft Azure RSA TLS Issuing CA 04, valid until Aug 25 2026 (~117 days). No weak ciphers or legacy protocol support detected.",
+    "severity": "info",
+    "confidence": 0.97,
+    "evidence": {
+      "type": "tool_output",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["tls", "ssl", "certificate", "azure", "tls13"],
+    "deduplication_key": "ssl-tls:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:cert-enum",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "ssl-tls-vuln wave 2",
+    "evidence_safe": "openssl s_client TLS 1.3 OK: TLS_AES_256_GCM_SHA384/x25519. Cert: CN=livelystone-c1480484.westus2.azurecontainerapps.io, notAfter=Aug 25 23:59:59 2026 GMT. TLS 1.0/1.1 rejected with alert 70.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_c9e51b47",
+    "wave": 2,
+    "agent": "ssl-tls-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "tls_misconfiguration",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/",
+      "param": null
+    },
+    "title": "Backend Missing HSTS Header (Strict-Transport-Security not observed in unauthenticated response)",
+    "description": "HTTP response to unauthenticated request returned HTTP 401 without a Strict-Transport-Security header. HSTS may be present on authenticated responses, but its absence on 401 means browsers may not cache the HSTS policy for first-time visitors who receive an error.",
+    "severity": "low",
+    "confidence": 0.70,
+    "evidence": {
+      "type": "tool_output",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["tls", "hsts", "headers", "security-headers"],
+    "deduplication_key": "ssl-tls:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:hsts-missing",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "ssl-tls-vuln wave 2",
+    "evidence_safe": "curl -v https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io returned HTTP/2 401 with no Strict-Transport-Security header in response.",
+    "evidence_quarantined": null
+  }
+]

@@ -1,0 +1,295 @@
+# CHAIN PATTERNS
+#
+# 20 distilled multi-hop attack patterns from real bug bounty literature.
+# Source: HackerOne Hacktivity, Frans Rosén (Detectify Labs), NahamSec writeups,
+# LiveOverflow, Stök, Project Zero, Black Hat / DEF CON published chains.
+#
+# The Chain Hunter retrieves patterns by `match_tags`; matched patterns become
+# candidate edge templates added to the graph for that engagement.
+#
+# Each pattern: when {trigger conditions} → propose {candidate exploit chain}.
+
+patterns:
+
+  - id: leak_to_cloud_compromise
+    name: "Public secret leak → cloud account takeover"
+    match_tags: [secret-leak, github, cloud, aws, gcp, azure]
+    trigger:
+      - "any leaked_credential with grants containing aws_iam_credential|gcp_service_account|azure_credential"
+    chain:
+      - "validate credential is live (sts:GetCallerIdentity / equivalent)"
+      - "enumerate IAM scope (iam:ListAttachedUserPolicies, simulate-principal-policy)"
+      - "if S3 access: list buckets, sample sensitive prefixes (backup/, dump/, prod-)"
+      - "if EC2/compute: describe-instances, look for SSM-managed targets"
+      - "if RDS: describe-db-instances, look for snapshots"
+    target_severity: critical
+    references:
+      - "Frans Rosén — How I exposed AWS account via Application Load Balancer"
+      - "HackerOne #428001"
+
+  - id: ssrf_to_metadata_to_iam
+    name: "SSRF → cloud metadata → IAM credentials"
+    match_tags: [ssrf, cloud, metadata]
+    trigger:
+      - "any ssrf_basic|ssrf_blind|ssrf_internal with grants containing ssrf"
+    chain:
+      - "probe http://169.254.169.254/latest/meta-data/ (AWS)"
+      - "probe http://metadata.google.internal/computeMetadata/v1/ with header Metadata-Flavor: Google"
+      - "probe http://169.254.169.254/metadata/instance?api-version=2021-02-01 with header Metadata: true (Azure)"
+      - "if SSRF blocks 169.254 → try alternate encodings, DNS rebinding, IPv6 fe80::a9fe:a9fe"
+      - "extract iam role credentials → escalate via leak_to_cloud_compromise pattern"
+    target_severity: critical
+    references:
+      - "Capital One breach (2019) — SSRF + IMDSv1"
+      - "OWASP SSRF Prevention Cheat Sheet"
+
+  - id: sqli_to_creds_to_app_login
+    name: "SQLi (read) → user table → cleartext or crackable hash → login"
+    match_tags: [sqli, auth, credentials]
+    trigger:
+      - "any sql_injection with grants containing db_read"
+    chain:
+      - "dump information_schema, locate user/auth table"
+      - "dump password column (cleartext, bcrypt, argon2, md5, plain sha1?)"
+      - "if cleartext → direct login as admin user"
+      - "if hash → hashcat with rockyou + common patterns"
+      - "log in as recovered user → check for vertical IDOR to admin"
+    target_severity: critical
+    references:
+      - "OWASP Testing Guide WSTG-INPV-05"
+
+  - id: idor_horizontal_to_account_takeover
+    name: "Horizontal IDOR on password reset → account takeover"
+    match_tags: [idor, auth, password-reset]
+    trigger:
+      - "any password_reset_flaw OR idor_horizontal on user_id|email|reset_token"
+    chain:
+      - "request password reset for victim email"
+      - "intercept response — check if reset token returned"
+      - "or: change user_id in reset confirmation request"
+      - "or: predict reset token (sequential, time-based, weak entropy)"
+      - "set new password → log in as victim"
+    target_severity: critical
+    references:
+      - "HackerOne — Slack OAuth account takeover (2017)"
+
+  - id: jwt_alg_none_or_weak_secret
+    name: "JWT none-alg / weak HS256 secret → privilege escalation"
+    match_tags: [jwt, auth, token]
+    trigger:
+      - "any weak_jwt OR jwt_alg_confusion"
+      - "any leaked jwt_secret"
+    chain:
+      - "decode current JWT, inspect alg + claims"
+      - "test alg=none, alg=HS256 with public-key-as-secret confusion"
+      - "if HS256: try common secrets (secret, jwt_secret, env vars from leaks)"
+      - "forge JWT with admin claims (role:admin, sub:1, is_superuser:true)"
+      - "replay against authenticated endpoints"
+    target_severity: critical
+    references:
+      - "Auth0 JWT alg confusion writeup"
+      - "Black Hat 2015 Tim McLean"
+
+  - id: subdomain_takeover_to_cookie_theft
+    name: "Subdomain takeover → cookie scope theft → account takeover"
+    match_tags: [subdomain, takeover, cookies, dns]
+    trigger:
+      - "any dns_takeover_candidate on *.<scope_host>"
+    chain:
+      - "claim the dangling resource (S3/Heroku/GitHub Pages/Azure)"
+      - "host endpoint on subdomain reading document.cookie / fetching to attacker"
+      - "if parent domain sets cookies on .<scope_host> → stolen on subdomain"
+      - "use stolen session token against parent app → account takeover"
+    target_severity: critical
+    references:
+      - "Frans Rosén — A 5 year old bug worth $500"
+
+  - id: oauth_redirect_to_token_leak
+    name: "OAuth redirect_uri loose validation → token leak"
+    match_tags: [oauth, sso, auth, redirect]
+    trigger:
+      - "any oauth_misconfig OR redirect parameter present in auth flow"
+    chain:
+      - "test redirect_uri allowlist: bypass with subpath (//attacker), suffix (.attacker.com), path traversal"
+      - "if any bypass → craft auth flow returning code/token to attacker"
+      - "exchange code for access_token → impersonate user"
+    target_severity: critical
+    references:
+      - "Detectify — OAuth security cheat sheet"
+
+  - id: cors_misconfig_to_data_theft
+    name: "CORS reflect arbitrary origin + credentials → cross-origin data exfil"
+    match_tags: [cors, csrf, browser]
+    trigger:
+      - "any cors_misconfig with Access-Control-Allow-Credentials: true"
+      - "Access-Control-Allow-Origin reflects request Origin"
+    chain:
+      - "host attacker page that fetch()'s API endpoint with credentials: include"
+      - "victim visits attacker page → browser sends cookies → response readable"
+      - "extract user data, CSRF tokens, session info"
+    target_severity: high
+    references:
+      - "PortSwigger CORS labs"
+
+  - id: postmessage_xss_to_session_theft
+    name: "postMessage handler trusts origin → DOM XSS → session theft"
+    match_tags: [xss, postmessage, dom, browser]
+    trigger:
+      - "any postmessage_xss"
+    chain:
+      - "iframe target page from attacker origin"
+      - "send message exploiting handler (e.g. eval'd payload, innerHTML sink)"
+      - "execute JS in target origin → exfil cookies (if not HttpOnly), localStorage, session tokens"
+    target_severity: high
+    references:
+      - "Mathias Karlsson — postMessage exploitation"
+
+  - id: graphql_introspection_to_hidden_endpoints
+    name: "GraphQL introspection → hidden mutations → privilege escalation"
+    match_tags: [graphql, api, idor, authz]
+    trigger:
+      - "any graphql endpoint with introspection enabled"
+    chain:
+      - "fetch full schema via introspection query"
+      - "enumerate mutations not exposed in UI (admin*, internal*, debug*)"
+      - "test each as low-priv user — many fail to authz check at resolver level"
+      - "find one that grants role escalation, sensitive data, or write to other users"
+    target_severity: critical
+    references:
+      - "HackerOne — GitLab GraphQL escalations"
+
+  - id: ssti_to_rce
+    name: "Server-Side Template Injection → RCE"
+    match_tags: [ssti, injection, rce]
+    trigger:
+      - "any template_injection (Jinja2/Twig/Velocity/Freemarker/Handlebars)"
+    chain:
+      - "confirm engine via fingerprint payload ({{7*7}}, ${7*7}, #{7*7})"
+      - "load language-specific RCE payload (e.g. Jinja2 {{config.__class__.__init__.__globals__['os'].popen('id').read()}})"
+      - "execute, escalate via filesystem read of secrets"
+    target_severity: critical
+    references:
+      - "PortSwigger SSTI research"
+
+  - id: race_condition_to_business_logic_bypass
+    name: "Race condition on state-changing endpoint → bypass quotas/auth"
+    match_tags: [race, business-logic, concurrency]
+    trigger:
+      - "any state-changing endpoint without observable locking"
+      - "credit/quota/coupon/transfer flows"
+    chain:
+      - "fire 50 concurrent identical requests via Burp Turbo Intruder / ffuf parallelism"
+      - "observe: balance went negative? coupon used N times? duplicate accounts created?"
+      - "if yes → confirmed race; document monetary or auth impact"
+    target_severity: high
+    references:
+      - "James Kettle — Smashing the state machine (Black Hat 2023)"
+
+  - id: file_upload_to_rce
+    name: "Unrestricted file upload → server-side execution"
+    match_tags: [upload, rce, deserialization]
+    trigger:
+      - "any file upload endpoint without strict validation"
+    chain:
+      - "test extensions: .php .phtml .jsp .aspx .py .pl .htaccess + double-ext + null-byte + magic-byte spoofing"
+      - "if uploaded file is web-accessible → request it → execute"
+      - "if uploaded but not web-accessible → check for LFI/include path"
+      - "if image processing: try ImageMagick (CVE-2016-3714) / ExifTool exploits"
+    target_severity: critical
+    references:
+      - "OWASP File Upload Cheat Sheet"
+
+  - id: prototype_pollution_to_auth_bypass
+    name: "Prototype pollution → auth bypass / RCE in JS apps"
+    match_tags: [nodejs, prototype, injection]
+    trigger:
+      - "any application using vulnerable lodash/jquery merge + user input"
+    chain:
+      - "send payload {\"__proto__\": {\"isAdmin\": true}} or constructor.prototype injection"
+      - "trigger object that checks pollution-target property"
+      - "for RCE: pollute exec args / template options"
+    target_severity: high
+    references:
+      - "Snyk research — prototype pollution"
+
+  - id: ssrf_to_internal_admin
+    name: "SSRF → internal admin/debug interface → RCE"
+    match_tags: [ssrf, internal, admin]
+    trigger:
+      - "any ssrf_internal"
+    chain:
+      - "probe localhost:[8080,8443,9090,3000,5000,8000,4444] for management consoles"
+      - "probe internal hostnames (jenkins, kibana, consul, vault, kubelet, kube-apiserver, redis, mongo, etcd)"
+      - "if Jenkins: /script (Groovy console)"
+      - "if Consul/Vault: read secrets"
+      - "if Redis: replication-master injection → RCE"
+    target_severity: critical
+    references:
+      - "HackerOne #341876"
+
+  - id: tenant_id_swap_to_data_breach
+    name: "Tenant header tamper → cross-tenant data access"
+    match_tags: [multi-tenant, idor, tenant, saas]
+    trigger:
+      - "SaaS app with tenant_id, org_id, workspace_id parameter or header"
+    chain:
+      - "log in to tenant A, capture all requests"
+      - "create tenant B (or use known second tenant)"
+      - "swap X-Tenant-Id / org_id query param to B in tenant-A session"
+      - "if data returned → cross-tenant read"
+      - "test write operations same way → cross-tenant write"
+    target_severity: critical
+    references:
+      - "Inon Shkedy — top 10 API vulnerabilities (BOLA)"
+
+  - id: mass_assignment_to_role_escalation
+    name: "Mass assignment on user update → self-promote to admin"
+    match_tags: [mass-assignment, authz, profile]
+    trigger:
+      - "user-editable profile/account update endpoint"
+    chain:
+      - "submit profile update with extra fields: role=admin, is_superuser=true, isAdmin=true, permissions=[\"*\"]"
+      - "fetch own profile → check if role updated"
+      - "if yes → confirmed escalation"
+    target_severity: critical
+    references:
+      - "GitHub Rails mass assignment (homakov, 2012)"
+
+  - id: cache_poisoning_to_xss
+    name: "HTTP cache poisoning via header → stored XSS for all visitors"
+    match_tags: [cache, xss, headers]
+    trigger:
+      - "CDN/cache present + reflected unkeyed header (X-Forwarded-Host, X-Host, etc.)"
+    chain:
+      - "send request with poisoned header reflected in response (e.g. canonical link, redirect URL)"
+      - "verify cache hit on subsequent normal request"
+      - "if reflection occurs in HTML/JS → cache poisons XSS to all subsequent visitors"
+    target_severity: critical
+    references:
+      - "James Kettle — Practical Web Cache Poisoning"
+
+  - id: dependency_confusion_to_rce_in_ci
+    name: "Internal package name unregistered on public registry → CI/CD RCE"
+    match_tags: [supply-chain, npm, pypi, dependency-confusion]
+    trigger:
+      - "supply-chain finding: internal package name detected, not on public registry"
+    chain:
+      - "register same name on public npm/PyPI with higher version + post-install script"
+      - "wait for CI to fetch (or trigger via PR)"
+      - "exfil env vars, CI tokens, repo secrets via post-install"
+    target_severity: critical
+    references:
+      - "Alex Birsan — Dependency Confusion (2021)"
+
+  - id: stored_xss_to_admin_session
+    name: "Stored XSS in user-visible field → admin opens → admin session theft"
+    match_tags: [xss, stored, admin]
+    trigger:
+      - "any stored_xss in field rendered in admin/staff dashboard"
+    chain:
+      - "submit XSS payload via low-priv user (support ticket title, profile name, comment)"
+      - "wait for admin to view content"
+      - "payload exfils admin session token / performs admin action via fetch()"
+    target_severity: critical
+    references:
+      - "Filedescriptor — Twitter XSS chain"

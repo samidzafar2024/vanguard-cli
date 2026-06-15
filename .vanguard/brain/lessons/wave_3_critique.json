@@ -1,0 +1,84 @@
+{
+  "wave": 3,
+  "critique_timestamp": "2026-05-01T00:00:00.000Z",
+  "agent_results": {
+    "github-leaks": {
+      "status": "completed",
+      "outcome": "No raw secrets found. Dev contact: dave.sims@hey.com. App: revops-crm. Org: CoPoint-Data on GitHub (2 public repos, no source code).",
+      "quality": "thorough",
+      "notes": "NEXTAUTH_SECRET not exposed publicly. Secret-based attacks (chain_003 OIDC nonce bypass) cannot leverage a leaked secret — must rely on behavioral nonce absence test."
+    },
+    "osint-recon": {
+      "status": "completed",
+      "outcome": "DMARC p=none (email spoofing possible). Azure AD user enumeration blocked. revops.copointdata.com = production domain confirmed live.",
+      "quality": "thorough",
+      "notes": "DMARC p=none is a real finding but out of scope for this technical engagement. Azure AD enum blocked — user list must come from authenticated API access."
+    },
+    "supply-chain": {
+      "status": "completed",
+      "outcome": "Next.js 16.1.6, React 19.3.0. No CVEs — all tested versions above vulnerable thresholds.",
+      "quality": "thorough",
+      "notes": "Clean supply chain removes entire CVE-based attack surface. No patch-based bypass available."
+    }
+  },
+  "lessons": [
+    {
+      "id": "L-W3-001",
+      "lesson": "NEXTAUTH_SECRET not known — chain_003 OIDC nonce bypass must be confirmed via behavioral test on /api/auth/callback/azure-ad, not secret extraction.",
+      "impact": "chain_003 EV remains 0.76 but depends on active nonce absence confirmation.",
+      "wave_4_action": "auth-vuln agent must actively test nonce validation on OIDC callback endpoint."
+    },
+    {
+      "id": "L-W3-002",
+      "lesson": "No CVEs found in Next.js or React — deprioritize all CVE-based attack chains. Supply chain is clean.",
+      "impact": "Eliminates any assumption of framework-level vulnerability exploitation.",
+      "wave_4_action": "Remove CVE exploitation from injection-vuln hints. Focus on application-level logic flaws."
+    },
+    {
+      "id": "L-W3-003",
+      "lesson": "DMARC p=none enables email spoofing but is out of scope for this technical pentest engagement.",
+      "impact": "Phishing vector exists but should not consume agent cycles in Wave 4.",
+      "wave_4_action": "Do not spawn phishing-focused agents. Note in final report as informational finding."
+    },
+    {
+      "id": "L-W3-004",
+      "lesson": "Wave 4 should focus on auth bypass (OIDC nonce), IDOR (RBAC privesc), and XSS (to combine with CORS null-origin chain_002 EV=0.97).",
+      "impact": "chain_002 is highest-value target — CORS null-origin exploit is READY. XSS amplifies it to full session steal.",
+      "wave_4_action": "Priority order: auth-vuln (critical) → idor-vuln (critical) → xss-vuln (high) → ssrf-vuln (high) → authz-vuln (high) → injection-vuln (medium) → websocket-vuln (medium)."
+    },
+    {
+      "id": "L-W3-005",
+      "lesson": "Production domain revops.copointdata.com confirmed live — all Wave 4 agents should target this domain.",
+      "impact": "Confirms active attack surface.",
+      "wave_4_action": "All vuln agents use revops.copointdata.com as primary target."
+    }
+  ],
+  "chain_status": {
+    "chain_002": {
+      "ev": 0.97,
+      "status": "READY_FOR_EXPLOIT",
+      "blockers": [],
+      "notes": "CORS null-origin → credentialed API access. Highest priority."
+    },
+    "chain_003": {
+      "ev": 0.76,
+      "status": "NEEDS_ACTIVE_TEST",
+      "blockers": ["NEXTAUTH_SECRET unknown", "nonce absence unconfirmed"],
+      "notes": "auth-vuln Wave 4 agent must confirm nonce bypass."
+    },
+    "chain_004": {
+      "ev": 0.72,
+      "status": "NEEDS_AUTH_SESSION",
+      "blockers": ["requires authenticated session"],
+      "notes": "idor-vuln Wave 4 agent targets /rbac/users/{id}/role."
+    },
+    "chain_006": {
+      "ev": 0.68,
+      "status": "NEEDS_AUTH_AND_SSRF_CONFIRM",
+      "blockers": ["requires auth", "SSRF unconfirmed"],
+      "notes": "ssrf-vuln Wave 4 agent targets 11 known SSRF-candidate endpoints."
+    }
+  },
+  "mutations_applied": [],
+  "wave_4_readiness": "READY"
+}

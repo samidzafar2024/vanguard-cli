@@ -1,0 +1,8 @@
+@include(shared/_filesystem.txt)
+
+Please complete these tasks:
+
+1. Save an OSINT recon deliverable:
+   - Run: `save-deliverable --type OSINT_RECON --content '# OSINT Reconnaissance Deliverable\n\nOSINT scan complete. No breach exposures detected.'`
+
+As a final step, announce completion.

@@ -1,0 +1,370 @@
+project: vanguard-security
+repo: samidzafar2024/vanguard-cli
+stack: TypeScript + Temporal + Claude Agent SDK
+last_updated: 2026-04-28
+
+# ──────────────────────────────────────────
+# PHASES
+# ──────────────────────────────────────────
+phases:
+  phase1:
+    name: Foundation
+    status: not_started
+    github_milestone: ~
+    description: Safety + OPSEC foundation — must ship before any other feature
+    deliverables:
+      - vanguardFetch (centralized HTTP egress, curl_cffi, OPSEC headers)
+      - engagement.yaml schema + 15 preflight checks
+      - trust_tier on graph nodes + provenance
+      - Finding schema with quarantined_evidence field
+      - Three-mode dispatcher (passive/validated/active)
+      - Blast-radius decorator + 10MB evidence cap
+
+  phase2:
+    name: Brain Core
+    status: not_started
+    github_milestone: ~
+    description: HPC-AG brain wired into workflow, 62 new chain patterns
+    deliverables:
+      - Planner agent wired between waves
+      - Critic agent validates all findings
+      - Chain Hunter runs between waves
+      - chain-patterns.yaml 20 → 82 patterns
+      - OPSEC-aware Critic (P_detection scoring)
+
+  phase3:
+    name: Intelligence Agents + Brain Core
+    status: not_started
+    github_milestone: ~
+    description: Threat intel, credential feedback loop, black-box mode, brain agents
+    deliverables:
+      - threat-intel enhanced osint-recon (Wave 0, zero target contact)
+      - cred-intel agent (default creds, HIBP, rate-limited spray)
+      - hardening-auditor agent (headers, TLS, score A-F)
+      - credential feedback loop (inter-agent secret passing)
+      - black-box mode (no repo path required)
+      - brain-planner, brain-critic, brain-chain-hunter, brain-guardian
+
+  phase4:
+    name: Advanced Surfaces
+    status: not_started
+    github_milestone: ~
+    description: LLM attacks, per-cloud agents (AWS/GCP/Azure), browser-side, remediator, cross-engagement memory
+    deliverables:
+      - llm-prompt-injector, llm-exfiltrator, llm-rag-poisoner (LLM attack agents)
+      - aws-vuln, gcp-vuln, azure-vuln (per-cloud replacing generic cloud-vuln)
+      - browser-side agent (CSP bypass, postMessage, Service Worker, prototype pollution)
+      - remediator (find → fix → re-test → open PR loop)
+      - pgvector cross-engagement memory (anonymized finding signatures)
+
+# ──────────────────────────────────────────
+# SPECS
+# ──────────────────────────────────────────
+specs:
+  phase1-foundation:
+    file: .waypoint/specs/phase1-foundation.md
+    status: draft
+    created: 2026-04-28
+  phase2-intelligence:
+    file: .waypoint/specs/phase2-intelligence.md
+    status: draft
+    created: 2026-04-28
+  phase3-brain-intel:
+    file: .waypoint/specs/phase3-brain-intel.md
+    status: draft
+    created: 2026-04-28
+  phase4-advanced-surfaces:
+    file: .waypoint/specs/phase4-advanced-surfaces.md
+    status: draft
+    created: 2026-04-28
+  phase5-network-enterprise:
+    file: .waypoint/specs/phase5-network-enterprise.md
+    status: draft
+    created: 2026-04-28
+
+# ──────────────────────────────────────────
+# PLANS
+# ──────────────────────────────────────────
+plans:
+  phase1-foundation:
+    file: .waypoint/plans/phase1-foundation.md
+    status: draft
+    created: 2026-04-28
+  phase2-intelligence:
+    file: .waypoint/plans/phase2-intelligence.md
+    status: draft
+    created: 2026-04-28
+  phase3-brain-intel:
+    file: .waypoint/plans/phase3-brain-intel.md
+    status: draft
+    created: 2026-04-28
+  phase4-advanced-surfaces:
+    file: .waypoint/plans/phase4-advanced-surfaces.md
+    status: draft
+    created: 2026-04-28
+  phase5-network-enterprise:
+    file: .waypoint/plans/phase5-network-enterprise.md
+    status: draft
+    created: 2026-04-28
+
+# ──────────────────────────────────────────
+# TASKS
+# ──────────────────────────────────────────
+tasks:
+  phase1:
+    - id: task-001
+      title: EngagementConfig type + loader
+      file: .waypoint/tasks/phase1/task-001.md
+      status: open
+      github_issue: ~
+      labels: [phase1, workflow]
+    - id: task-002
+      title: 15 Engagement Preflight Checks
+      file: .waypoint/tasks/phase1/task-002.md
+      status: open
+      github_issue: ~
+      labels: [phase1, workflow]
+      depends_on: [task-001]
+    - id: task-003
+      title: vanguardFetch — OPSEC HTTP Egress Layer
+      file: .waypoint/tasks/phase1/task-003.md
+      status: open
+      github_issue: ~
+      labels: [phase1, opsec]
+      depends_on: [task-001]
+    - id: task-004
+      title: Quarantine LLM Pipeline
+      file: .waypoint/tasks/phase1/task-004.md
+      status: open
+      github_issue: ~
+      labels: [phase1, brain, opsec]
+      depends_on: [task-003]
+    - id: task-005
+      title: Trust-Tier on Graph Nodes
+      file: .waypoint/tasks/phase1/task-005.md
+      status: open
+      github_issue: ~
+      labels: [phase1, brain]
+      depends_on: [task-001, task-004]
+    - id: task-006
+      title: Three-Mode Dispatcher
+      file: .waypoint/tasks/phase1/task-006.md
+      status: open
+      github_issue: ~
+      labels: [phase1, workflow]
+      depends_on: [task-001]
+    - id: task-007
+      title: Blast-Radius Tracker + Evidence Budget
+      file: .waypoint/tasks/phase1/task-007.md
+      status: open
+      github_issue: ~
+      labels: [phase1, workflow]
+      depends_on: [task-001]
+  phase2:
+    - id: task-008
+      title: WAF Fingerprint + Bypass Agent
+      file: .waypoint/tasks/phase2/task-008.md
+      status: open
+      github_issue: ~
+      labels: [phase2, agent, opsec]
+      depends_on: [task-001, task-003]
+      wave: 0
+    - id: task-009
+      title: Secrets Detection Agent
+      file: .waypoint/tasks/phase2/task-009.md
+      status: open
+      github_issue: ~
+      labels: [phase2, agent]
+      depends_on: [task-008]
+      wave: 1
+    - id: task-027
+      title: Profiling Agent (Tech Stack + Cloud + LLM Fingerprinting)
+      file: .waypoint/tasks/phase2/task-027.md
+      status: open
+      github_issue: ~
+      labels: [phase2, agent]
+      depends_on: [task-008]
+      wave: 1
+
+  phase3:
+    - id: task-010
+      title: Threat Intelligence Agent
+      file: .waypoint/tasks/phase3/task-010.md
+      status: open
+      github_issue: ~
+      labels: [phase3, agent]
+      depends_on: [task-001]
+      wave: 0
+    - id: task-011
+      title: Credential Intelligence Agent
+      file: .waypoint/tasks/phase3/task-011.md
+      status: open
+      github_issue: ~
+      labels: [phase3, agent]
+      depends_on: [task-010]
+      wave: 1
+    - id: task-012
+      title: Hardening + Misconfiguration Auditor
+      file: .waypoint/tasks/phase3/task-012.md
+      status: open
+      github_issue: ~
+      labels: [phase3, agent]
+      depends_on: [task-001]
+      wave: 1
+    - id: task-013
+      title: Credential Feedback Loop + Black-Box Mode
+      file: .waypoint/tasks/phase3/task-013.md
+      status: open
+      github_issue: ~
+      labels: [phase3, brain, opsec]
+      depends_on: [task-010, task-011]
+      wave: brain
+    - id: task-023
+      title: Brain Planner
+      file: .waypoint/tasks/phase3/task-023.md
+      status: open
+      github_issue: ~
+      labels: [phase3, brain]
+      depends_on: [task-010, task-013]
+      wave: between-waves
+    - id: task-024
+      title: Brain Critic
+      file: .waypoint/tasks/phase3/task-024.md
+      status: open
+      github_issue: ~
+      labels: [phase3, brain]
+      depends_on: [task-023]
+      wave: post-exploit
+    - id: task-025
+      title: Brain Chain Hunter
+      file: .waypoint/tasks/phase3/task-025.md
+      status: open
+      github_issue: ~
+      labels: [phase3, brain]
+      depends_on: [task-024]
+      wave: post-critic
+    - id: task-026
+      title: Brain Guardian
+      file: .waypoint/tasks/phase3/task-026.md
+      status: open
+      github_issue: ~
+      labels: [phase3, brain, opsec]
+      depends_on: [task-008]
+      wave: background
+
+  phase4:
+    - id: task-014
+      title: LLM Attack Surface (3 Agents — prompt-injector, exfiltrator, rag-poisoner)
+      file: .waypoint/tasks/phase4/task-014.md
+      status: open
+      github_issue: ~
+      labels: [phase4, agent, llm]
+      depends_on: [task-013]
+      wave: 1
+    - id: task-015
+      title: Per-Cloud Agents (AWS / GCP / Azure)
+      file: .waypoint/tasks/phase4/task-015.md
+      status: open
+      github_issue: ~
+      labels: [phase4, agent, cloud]
+      depends_on: [task-013]
+      wave: 2
+    - id: task-016
+      title: Browser-Side Attack Agent
+      file: .waypoint/tasks/phase4/task-016.md
+      status: open
+      github_issue: ~
+      labels: [phase4, agent]
+      depends_on: [task-001, task-003]
+      wave: 1
+    - id: task-017
+      title: Remediation Generator (Remediator)
+      file: .waypoint/tasks/phase4/task-017.md
+      status: open
+      github_issue: ~
+      labels: [phase4, agent, brain]
+      depends_on: [task-013]
+      wave: post-critic
+    - id: task-018
+      title: Cross-Engagement Memory (pgvector)
+      file: .waypoint/tasks/phase4/task-018.md
+      status: open
+      github_issue: ~
+      labels: [phase4, platform, memory]
+      depends_on: [task-013]
+      wave: platform
+
+  phase5:
+    - id: task-019
+      title: Network Recon Agent (nmap-based topology mapping)
+      file: .waypoint/tasks/phase5/task-019.md
+      status: open
+      github_issue: ~
+      labels: [phase5, agent, network]
+      depends_on: [task-018]
+      wave: 0.5
+    - id: task-020
+      title: Active Directory Attack Agent
+      file: .waypoint/tasks/phase5/task-020.md
+      status: open
+      github_issue: ~
+      labels: [phase5, agent, network, active]
+      depends_on: [task-019, task-011]
+      wave: 2
+    - id: task-021
+      title: Mobile Application Testing Agent
+      file: .waypoint/tasks/phase5/task-021.md
+      status: open
+      github_issue: ~
+      labels: [phase5, agent, mobile]
+      depends_on: [task-018]
+      wave: 1
+    - id: task-022
+      title: Kill Chain Coordinator
+      file: .waypoint/tasks/phase5/task-022.md
+      status: open
+      github_issue: ~
+      labels: [phase5, agent, brain, active]
+      depends_on: [task-019, task-020, task-021]
+      wave: post-critic
+    - id: task-028
+      title: Multi-Target Pipeline (shared CredentialStore + cross-target analysis)
+      file: .waypoint/tasks/phase5/task-028.md
+      status: open
+      github_issue: ~
+      labels: [phase5, platform, workflow]
+      depends_on: [task-013, task-018]
+      wave: workflow-mode
+
+# ──────────────────────────────────────────
+# WORKFLOWS
+# ──────────────────────────────────────────
+workflows:
+  active: ~
+  completed: []
+
+# ──────────────────────────────────────────
+# RESEARCH REFERENCES
+# ──────────────────────────────────────────
+research:
+  architectural_review: docs/research/99-architectural-review.md
+  opsec: docs/research/02-opsec-industry-standards.md
+  brain: docs/research/01-hpc-ag-architecture.md
+  auth: docs/research/14-auth-identity-deep-dive.md
+  api: docs/research/13-api-security-deep-dive.md
+  cloud: docs/research/15-cloud-native-attack-surface.md
+  llm_apps: docs/research/16-ai-ml-application-attack-surface.md
+  browser: docs/research/17-browser-side-attack-surface.md
+  supply_chain: docs/research/18-supply-chain-attacks.md
+  cost: docs/research/09-cost-modeling.md
+  memory: docs/research/22-memory-architecture.md
+  tools: docs/research/23-modern-tool-ecosystem.md
+  benchmarks: docs/research/05-benchmark-evaluation-standards.md
+  competitive: docs/research/07-competitive-analysis.md
+  legal: docs/research/04-engagement-legal-framework.md
+  chain_corpus: docs/research/06-h1-chain-corpus.md
+  post_exploit: docs/research/11-post-exploitation.md
+  remediation: docs/research/12-remediation-generation.md
+  multi_target: docs/research/10-multi-target-strategies.md
+  adversarial_defense: docs/research/08-adversarial-output-defense.md
+  agent_failures: docs/research/21-llm-agent-failure-modes.md

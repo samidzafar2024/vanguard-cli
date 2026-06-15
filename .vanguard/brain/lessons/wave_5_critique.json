@@ -1,0 +1,33 @@
+{
+  "wave": 5,
+  "critique_timestamp": "2026-05-01T00:00:00Z",
+  "findings_reviewed": 8,
+  "high_value_findings": ["f_cors_null_poc", "f_ssrf_chain_poc"],
+  "methodology_gaps": [
+    "No live victim session obtained — all post-auth chains conditional on chain_002 delivery",
+    "Azure IMDS SSRF unconfirmed without authenticated session",
+    "RBAC IDOR unconfirmed without authenticated session"
+  ],
+  "lessons": [
+    {
+      "id": "lesson_5_001",
+      "text": "CORS null-origin PoC produced and verified via curl — chain_002 is fully exploitable with social engineering delivery",
+      "applies_to_wave": [6],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_5_002",
+      "text": "All post-auth chains (SSRF→IMDS, RBAC IDOR, GraphQL authz) are conditional on chain_002 but have high EV once auth is obtained",
+      "applies_to_wave": [6],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_5_003",
+      "text": "No new post-exploit pivots discovered — proceed to report, do not loop",
+      "applies_to_wave": [6],
+      "priority": "high"
+    }
+  ],
+  "graph_mutations": {"add_nodes": [], "add_edges": [], "update_nodes": [], "update_edges": []},
+  "stop_reason": "No new pivots — max impact documented, proceed to report"
+}

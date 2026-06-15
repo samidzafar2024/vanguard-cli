@@ -1,0 +1,179 @@
+{
+  "wave": 4,
+  "plan_timestamp": "2026-05-01T00:00:00.000Z",
+  "stop_loop": false,
+  "summary": "Run all 7 vuln agents in parallel. Priority: auth-vuln (OIDC nonce), idor-vuln (RBAC), xss-vuln (combine with CORS chain), ssrf-vuln (IMDS vector).",
+  "objectives": [
+    "Confirm OIDC nonce absence on /api/auth/callback/azure-ad (chain_003 gate)",
+    "Confirm RBAC IDOR for privilege escalation via /rbac/users/{id}/role (chain_004 gate)",
+    "Identify XSS vector to amplify chain_002 CORS null-origin exploit to full session steal",
+    "Confirm SSRF to Azure IMDS 169.254.169.254 via known SSRF-candidate endpoints (chain_006 gate)",
+    "Enumerate horizontal/vertical auth bypass on RBAC API endpoints",
+    "Test application-level injection (SQL, NoSQL, command) in Express API routes",
+    "Test Pusher WebSocket channel authorization bypass"
+  ],
+  "directives": [
+    {
+      "agent": "auth-vuln",
+      "output_file": "vuln-auth.txt",
+      "priority": "critical",
+      "hints": {
+        "focus_resources": [
+          "/api/auth/signin/azure-ad",
+          "/api/auth/callback/azure-ad",
+          "/api/auth/session"
+        ],
+        "success_signals": [
+          "nonce validation absent confirmed",
+          "state CSRF bypassable",
+          "session fixation possible"
+        ],
+        "expected_outcome": "Confirm OIDC nonce absence exploitability, test Azure AD state manipulation"
+      }
+    },
+    {
+      "agent": "idor-vuln",
+      "output_file": "vuln-idor.txt",
+      "priority": "critical",
+      "hints": {
+        "focus_resources": [
+          "/rbac/users/{id}/role",
+          "/rbac/roles/{id}",
+          "/users/{id}/access"
+        ],
+        "success_signals": [
+          "IDOR confirmed — can change own role",
+          "can access other users data"
+        ],
+        "expected_outcome": "Confirm RBAC IDOR allows privilege escalation"
+      }
+    },
+    {
+      "agent": "xss-vuln",
+      "output_file": "vuln-xss.txt",
+      "priority": "high",
+      "hints": {
+        "focus_resources": [
+          "URL parameters",
+          "search inputs",
+          "React component props from URL"
+        ],
+        "success_signals": [
+          "XSS confirmed → combines with CORS for full session steal"
+        ],
+        "expected_outcome": "Find stored or reflected XSS (not required for CORS chain but amplifies it)"
+      }
+    },
+    {
+      "agent": "ssrf-vuln",
+      "output_file": "vuln-ssrf.txt",
+      "priority": "high",
+      "hints": {
+        "focus_resources": [
+          "/proxy",
+          "/pdf",
+          "/screenshot",
+          "/fetch",
+          "/render",
+          "/webhook"
+        ],
+        "success_signals": [
+          "SSRF to 169.254.169.254 confirmed",
+          "internal network access"
+        ],
+        "expected_outcome": "Confirm SSRF to Azure IMDS via one of 11 known SSRF-candidate endpoints (requires auth)"
+      }
+    },
+    {
+      "agent": "authz-vuln",
+      "output_file": "vuln-authz.txt",
+      "priority": "high",
+      "hints": {
+        "focus_resources": [
+          "/rbac/roles",
+          "/rbac/permissions",
+          "/admin"
+        ],
+        "expected_outcome": "Test horizontal/vertical auth bypass on RBAC API endpoints"
+      }
+    },
+    {
+      "agent": "injection-vuln",
+      "output_file": "vuln-injection.txt",
+      "priority": "medium",
+      "hints": {
+        "focus_resources": [
+          "search params",
+          "filter params",
+          "GraphQL queries"
+        ],
+        "expected_outcome": "Test SQL injection in Express API routes, NoSQL injection, command injection"
+      }
+    },
+    {
+      "agent": "websocket-vuln",
+      "output_file": "vuln-websocket.txt",
+      "priority": "medium",
+      "hints": {
+        "focus_resources": [
+          "/api/pusher/auth",
+          "Pusher channel names"
+        ],
+        "expected_outcome": "Test Pusher WebSocket channel authorization bypass"
+      }
+    }
+  ],
+  "deprioritize": [
+    {
+      "category": "CVE-based attacks",
+      "reason": "Next.js 16.1.6 and React 19.3.0 confirmed above all vulnerable thresholds — supply chain clean"
+    },
+    {
+      "category": "Phishing / DMARC exploitation",
+      "reason": "Out of scope for this technical engagement despite DMARC p=none finding"
+    },
+    {
+      "category": "Secret extraction",
+      "reason": "NEXTAUTH_SECRET not found in public repos — no secret-based shortcut available"
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [],
+    "add_edges": [],
+    "update_nodes": [
+      {
+        "id": "chain_002",
+        "properties": {
+          "status": "READY_FOR_EXPLOIT",
+          "ev": 0.97,
+          "wave_4_focus": true
+        }
+      },
+      {
+        "id": "chain_003",
+        "properties": {
+          "status": "ACTIVE_TEST",
+          "ev": 0.76,
+          "wave_4_agent": "auth-vuln"
+        }
+      },
+      {
+        "id": "chain_004",
+        "properties": {
+          "status": "ACTIVE_TEST",
+          "ev": 0.72,
+          "wave_4_agent": "idor-vuln"
+        }
+      },
+      {
+        "id": "chain_006",
+        "properties": {
+          "status": "ACTIVE_TEST",
+          "ev": 0.68,
+          "wave_4_agent": "ssrf-vuln"
+        }
+      }
+    ],
+    "update_edges": []
+  }
+}

@@ -1,0 +1,138 @@
+[
+  {
+    "id": "f_gh1k9a2b",
+    "wave": 3,
+    "agent": "github-leaks",
+    "ptes_phase": "intelligence-gathering",
+    "attack_tactic": "TA0006",
+    "type": "source_code_disclosure",
+    "target": {
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/e31b6e95b36824c0.js",
+      "host": "revops-dev.vercel.app",
+      "path": "/_next/static/chunks/e31b6e95b36824c0.js",
+      "param": null
+    },
+    "title": "Azure Container App Internal Backend URL Exposed in Client-Side JavaScript Bundle",
+    "description": "The NextAuth.js bundle served at revops-dev.vercel.app contains a hardcoded reference to the internal backend API URL: https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io. This URL is publicly accessible, responds to unauthenticated requests on /health, and exposes the internal infrastructure topology. Direct probing of the backend API is possible without going through the frontend.",
+    "severity": "medium",
+    "confidence": 0.95,
+    "evidence": {
+      "type": "js_bundle_disclosure",
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/e31b6e95b36824c0.js",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": ["infrastructure_topology_disclosure", "direct_api_access"],
+    "cve_refs": [],
+    "tags": ["vercel", "next.js", "azure-container-apps", "information-disclosure", "client-js"],
+    "deduplication_key": "github-leaks:vercel-bundle:azure-container-app-url",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "github-leaks wave 3",
+    "evidence_safe": "String 'revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io' found in NextAuth bundle chunk e31b6e95b36824c0.js; /health returns HTTP 200 with Express server",
+    "evidence_quarantined": "URL: https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io — found inline in JS bundle; /health returns {\"status\":\"ok\",\"env\":\"production\"}"
+  },
+  {
+    "id": "f_gh2m7c4d",
+    "wave": 3,
+    "agent": "github-leaks",
+    "ptes_phase": "intelligence-gathering",
+    "attack_tactic": "TA0006",
+    "type": "source_code_disclosure",
+    "target": {
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/113349dfbebf515f.js",
+      "host": "revops-dev.vercel.app",
+      "path": "/_next/static/chunks/113349dfbebf515f.js",
+      "param": null
+    },
+    "title": "Git Commit SHA Hardcoded in Vercel Production Bundle (Source Version Fingerprinting)",
+    "description": "The Datadog RUM initialization bundle contains the literal git commit SHA 61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1 baked in as the application version string. This confirms the exact source code version deployed to production and can aid an attacker in identifying known vulnerabilities associated with that code version or correlating it with any future source code disclosure.",
+    "severity": "low",
+    "confidence": 1.0,
+    "evidence": {
+      "type": "js_bundle_disclosure",
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/113349dfbebf515f.js",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": ["source_version_fingerprint"],
+    "cve_refs": [],
+    "tags": ["vercel", "next.js", "datadog", "version-disclosure", "client-js"],
+    "deduplication_key": "github-leaks:vercel-bundle:git-sha-disclosure",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "github-leaks wave 3",
+    "evidence_safe": "Git SHA 61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1 found as hardcoded version string in Datadog RUM init block in public Vercel JS bundle",
+    "evidence_quarantined": "Datadog RUM init: version:\"1.0.0\" with SHA 61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1 baked in; confirms production bundle identity"
+  },
+  {
+    "id": "f_gh3p5e6f",
+    "wave": 3,
+    "agent": "github-leaks",
+    "ptes_phase": "intelligence-gathering",
+    "attack_tactic": "TA0006",
+    "type": "source_code_disclosure",
+    "target": {
+      "url": "https://github.com/CoPoint-Data/BMAD-METHOD",
+      "host": "github.com",
+      "path": "/CoPoint-Data/BMAD-METHOD",
+      "param": null
+    },
+    "title": "Internal Contributor Email Addresses Exposed in Public GitHub Repository Git History",
+    "description": "The public CoPoint-Data/BMAD-METHOD GitHub repository exposes internal contributor email addresses in commit history, including dave.sims@hey.com (primary CoPoint maintainer) and brianmadison@Brians-MacBook-Pro.local (containing the local machine hostname). These can be used for spear-phishing, credential stuffing, or social engineering attacks against CoPoint AI staff.",
+    "severity": "info",
+    "confidence": 0.85,
+    "evidence": {
+      "type": "github_commit",
+      "url": "https://github.com/CoPoint-Data/BMAD-METHOD/commits/main",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["github", "email-disclosure", "osint", "contributor-enumeration"],
+    "deduplication_key": "github-leaks:CoPoint-Data/BMAD-METHOD:contributor-emails",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "github-leaks wave 3",
+    "evidence_safe": "Git log reveals contributor emails: dave.sims@hey.com (CoPoint maintainer), brianmadison@Brians-MacBook-Pro.local in public BMAD-METHOD repo",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_gh4r8h7g",
+    "wave": 3,
+    "agent": "github-leaks",
+    "ptes_phase": "intelligence-gathering",
+    "attack_tactic": "TA0006",
+    "type": "source_code_disclosure",
+    "target": {
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/113349dfbebf515f.js",
+      "host": "revops-dev.vercel.app",
+      "path": "/_next/static/chunks/113349dfbebf515f.js",
+      "param": null
+    },
+    "title": "Internal Application Name and Datadog RUM Configuration Exposed in Client Bundle",
+    "description": "The Vercel production bundle exposes internal application metadata: the service is named 'revops-crm', environment is 'production', and uses Datadog RUM on datadoghq.com. The NEXT_PUBLIC_DATADOG_APPLICATION_ID and NEXT_PUBLIC_DATADOG_CLIENT_TOKEN environment variable names are referenced, confirming Datadog is instrumented. Datadog client tokens, if obtained, would allow reading RUM session data.",
+    "severity": "info",
+    "confidence": 0.9,
+    "evidence": {
+      "type": "js_bundle_disclosure",
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/113349dfbebf515f.js",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["vercel", "next.js", "datadog", "metadata-disclosure"],
+    "deduplication_key": "github-leaks:vercel-bundle:datadog-config-disclosure",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "github-leaks wave 3",
+    "evidence_safe": "JS bundle exposes: service name 'revops-crm', env 'production', Datadog RUM on datadoghq.com; env var names NEXT_PUBLIC_DATADOG_APPLICATION_ID and NEXT_PUBLIC_DATADOG_CLIENT_TOKEN referenced",
+    "evidence_quarantined": null
+  }
+]

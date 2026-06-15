@@ -1,0 +1,70 @@
+[
+  {
+    "id": "f_a3c2e8f1",
+    "wave": 4,
+    "agent": "xss-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0001",
+    "type": "xss_reflected",
+    "target": {
+      "url": "https://revops-dev.vercel.app/api/auth/error?error=%3Cscript%3Ealert%281%29%3C%2Fscript%3E",
+      "host": "revops-dev.vercel.app",
+      "path": "/api/auth/error",
+      "param": "error"
+    },
+    "title": "Unencoded XSS Payload Reflected in HTTP Location Header via NextAuth Error Endpoint",
+    "description": "The NextAuth /api/auth/error endpoint reflects the ?error= query parameter directly and unencoded into the HTTP 302 Location header (e.g. location: /login?error=<script>alert(1)</script>). Although React Server Components Unicode-escape the value in the RSC payload and the rendered HTML body shows a fixed error message, the unencoded reflection in the Location header constitutes reflected parameter injection. This does not achieve client-side XSS execution due to the nonce-based CSP and React output encoding, but could assist HTTP response splitting in legacy proxy configurations.",
+    "severity": "low",
+    "confidence": 0.85,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.vercel.app/api/auth/error?error=%3Cscript%3Ealert%281%29%3C%2Fscript%3E",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "tags": ["xss", "header-injection", "nextauth", "reflected"],
+    "deduplication_key": "xss-vuln:revops-dev.vercel.app:auth-error-param-location-header",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "xss-vuln wave 4",
+    "evidence_safe": "HTTP 302 with Location: /login?error=<script>alert(1)</script> observed in verbose curl; RSC data properly Unicode-escapes with \\u003c/\\u003e; HTML body shows fixed message not raw param",
+    "evidence_quarantined": null,
+    "cve_refs": []
+  },
+  {
+    "id": "f_b9d1c7a2",
+    "wave": 4,
+    "agent": "xss-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0001",
+    "type": "missing_csp",
+    "target": {
+      "url": "https://revops-dev.vercel.app/",
+      "host": "revops-dev.vercel.app",
+      "path": "/",
+      "param": null
+    },
+    "title": "CSP Present and Nonce-Based — No CSP Gaps Identified on Frontend",
+    "description": "Content-Security-Policy is present on all tested pages with per-request nonces for script-src. The policy includes object-src none, base-uri self, form-action self, and upgrade-insecure-requests. No unsafe-eval or unsafe-inline directives are present for scripts. The CSP effectively prevents exploitation of any reflected parameter injection as a script execution primitive.",
+    "severity": "info",
+    "confidence": 0.95,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.vercel.app/",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "tags": ["csp", "headers", "defense-in-depth"],
+    "deduplication_key": "xss-vuln:revops-dev.vercel.app:csp-nonce-present",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "xss-vuln wave 4",
+    "evidence_safe": "CSP header: default-src 'self'; script-src 'self' 'nonce-<per-request>'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report; upgrade-insecure-requests",
+    "evidence_quarantined": null,
+    "cve_refs": []
+  }
+]

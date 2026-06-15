@@ -1,0 +1,227 @@
+# FINDING SCHEMA
+
+The single normalized format for any observation extracted from cookbook agent deliverables. This is the load-bearing schema — `prerequisites` and `grants` are what let the graph builder draw chain edges automatically.
+
+---
+
+## JSON Schema
+
+```json
+{
+  "id": "f_<8-char-hash>",
+  "wave": 4,
+  "agent": "osint-recon",
+  "ptes_phase": "intelligence-gathering",
+  "attack_tactic": "TA0006",
+  "type": "leaked_credential",
+  "target": {
+    "url": "https://app.example.com",
+    "host": "app.example.com",
+    "path": "/",
+    "param": null
+  },
+  "title": "AWS access key leaked in public GitHub repo",
+  "description": "Found AKIA... in commit abc123 of org/repo file .env.example",
+  "severity": "high",
+  "confidence": 0.95,
+  "evidence": {
+    "type": "github_commit",
+    "url": "https://github.com/org/repo/commit/abc123",
+    "snippet": "AWS_ACCESS_KEY_ID=AKIA...",
+    "artifact_path": ".vanguard/deliverables/github_leaks.md#L42"
+  },
+  "prerequisites": [],
+  "grants": ["aws_iam_credential", "potential_s3_access"],
+  "cve_refs": [],
+  "tags": ["secret-leak", "github", "aws"],
+  "deduplication_key": "github:org/repo:akia_prefix",
+  "trust_tier": "trusted",
+  "evidence_source": "agent_direct",
+  "provenance": "osint-recon wave 3",
+  "evidence_safe": "AWS access key prefix AKIA... found in commit abc123",
+  "evidence_quarantined": null
+}
+```
+
+---
+
+## Field Definitions
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id` | string | yes | `f_` prefix + 8-char hash of `dedup_key` |
+| `wave` | int | yes | wave number that produced it |
+| `agent` | string | yes | cookbook agent name (e.g. `osint-recon`, `injection-vuln`) |
+| `ptes_phase` | enum | yes | one of the seven PTES phases |
+| `attack_tactic` | string | yes | MITRE ATT&CK tactic ID (TA0001-TA0043) |
+| `type` | string | yes | semantic finding type (see vocabulary below) |
+| `target` | object | yes | what it affects |
+| `title` | string | yes | one-line human summary, ≤120 chars |
+| `description` | string | yes | 1-3 sentences, what + where + why it matters |
+| `severity` | enum | yes | `info`, `low`, `medium`, `high`, `critical` |
+| `confidence` | float | yes | [0.0, 1.0] — P(this finding is real) |
+| `evidence` | object | yes | reproducible proof (URL, snippet, file path) |
+| `prerequisites` | array | yes | capability strings required to exploit; empty = pre-auth |
+| `grants` | array | yes | capability strings unlocked if exploited |
+| `cve_refs` | array | no | CVE IDs if applicable |
+| `tags` | array | no | searchable tags |
+| `deduplication_key` | string | yes | stable identity for merge |
+| `trust_tier` | enum | yes | `trusted`, `derived`, or `untrusted` — see Trust Tiers below |
+| `evidence_source` | string | yes | how evidence was collected: `agent_direct`, `external_response`, `derived` |
+| `provenance` | string | no | agent + wave that produced this finding |
+| `evidence_safe` | string | no | sanitized evidence safe to embed in LLM context |
+| `evidence_quarantined` | object | no | quarantine pipeline output for untrusted evidence (QuarantineResult) |
+
+---
+
+## Capability Vocabulary (`prerequisites` / `grants`)
+
+These strings are the **edges** in the attack graph. Use them consistently — they're not free-form. Add new ones only when no existing capability fits.
+
+### Identity & access
+- `unauthenticated` — no credentials needed (default state)
+- `authenticated_user` — valid session as any normal user
+- `authenticated_admin` — valid session as admin
+- `tenant_member:<tenant_id>` — member of specific tenant
+- `valid_email:<domain>` — verified email at given domain
+
+### Credentials
+- `username_list` — known set of valid usernames
+- `password_hash:<user_id>` — leaked/cracked hash
+- `cleartext_password:<user_id>` — usable cleartext password
+- `oauth_token:<provider>` — usable OAuth/SSO token
+- `jwt_secret` — server's JWT signing secret
+- `api_key:<service>` — third-party API key
+- `aws_iam_credential` — AWS access key + secret
+- `gcp_service_account` — GCP creds
+- `azure_credential` — Azure creds
+- `database_credential` — direct DB connection string
+
+### Data access
+- `db_read` — arbitrary DB read (e.g. via SQLi)
+- `db_write` — arbitrary DB write
+- `file_read:<scope>` — server-side file read
+- `file_write:<scope>` — server-side file write
+- `s3_bucket_access:<bucket>`
+- `internal_network_access` — can reach internal services
+
+### Code execution
+- `client_js_execution:<scope>` — XSS/DOM-XSS
+- `server_command_execution` — RCE
+- `subprocess_spawn` — limited cmd injection
+
+### Pivot capabilities
+- `ssrf:<scope>` — server-side request forgery (scope: `metadata`, `internal`, `external`)
+- `jwt_forge` — can forge JWTs (have secret or weak alg)
+- `session_hijack:<user_id>` — can impersonate user
+- `password_reset_for:<user_id>` — can reset another user's password
+
+### Information leaks (low-grade but compositional)
+- `username_enumeration` — can validate which usernames exist
+- `email_enumeration`
+- `internal_url_disclosure` — internal endpoints leaked
+- `stack_trace_disclosure`
+- `version_disclosure`
+- `source_code_disclosure`
+
+---
+
+## Finding Type Vocabulary
+
+Use these as `type` values. Prefer specific over generic.
+
+### Recon / OSINT
+`exposed_subdomain`, `exposed_endpoint`, `tech_stack_disclosure`, `open_port`, `dns_takeover_candidate`, `expired_certificate`, `internal_url_leak`
+
+### Secret / Credential
+`leaked_credential`, `weak_password`, `default_credential`, `hardcoded_secret`, `breach_hit`, `exposed_api_key`
+
+### Injection
+`sql_injection`, `nosql_injection`, `command_injection`, `ldap_injection`, `xpath_injection`, `template_injection`, `header_injection`, `crlf_injection`
+
+### XSS
+`reflected_xss`, `stored_xss`, `dom_xss`, `postmessage_xss`
+
+### Auth
+`auth_bypass`, `weak_jwt`, `jwt_alg_confusion`, `session_fixation`, `mfa_bypass`, `password_reset_flaw`, `oauth_misconfig`
+
+### AuthZ / IDOR
+`idor_horizontal`, `idor_vertical`, `tenant_bypass`, `path_traversal_authz`, `mass_assignment`
+
+### SSRF
+`ssrf_basic`, `ssrf_blind`, `ssrf_metadata`, `ssrf_internal`
+
+### Cloud / Infra
+`s3_bucket_open`, `iam_overprivileged`, `cloud_metadata_exposed`, `container_escape_candidate`, `kubernetes_exposed`
+
+### WebSocket
+`websocket_no_auth`, `websocket_origin_bypass`, `websocket_message_tamper`
+
+### Supply Chain
+`vulnerable_dependency`, `typosquatting_candidate`, `dependency_confusion`, `unsigned_artifact`
+
+### Misconfig
+`cors_misconfig`, `csrf_missing`, `csp_bypass`, `tls_weak`, `header_missing`, `directory_listing`
+
+---
+
+## Severity Calibration (CVSS-aligned)
+
+| Level | Score range | Examples |
+|---|---|---|
+| `info` | <2.0 | version disclosure, banner |
+| `low` | 2.0-3.9 | username enumeration, weak header |
+| `medium` | 4.0-6.9 | reflected XSS, IDOR with limited impact |
+| `high` | 7.0-8.9 | stored XSS, SQLi (read), broken auth |
+| `critical` | 9.0+ | RCE, SQLi (write), full auth bypass, leaked admin creds |
+
+Severity reflects **standalone** impact. Chain-amplified severity is computed by the Chain Hunter.
+
+---
+
+## Confidence Calibration
+
+| Range | Meaning |
+|---|---|
+| 0.95-1.00 | proven by automated tool with response capture |
+| 0.80-0.94 | strong heuristic match, manual review needed |
+| 0.60-0.79 | likely true positive, needs validation |
+| 0.40-0.59 | suspicious, low-noise tool finding |
+| <0.40 | discard or downgrade to hypothesis |
+
+---
+
+## Trust Tiers
+
+| Tier | When to use |
+|---|---|
+| `trusted` | Agent-produced evidence (tool output, static analysis, scanner result) |
+| `derived` | Inferred from trusted findings via reasoning |
+| `untrusted` | Crosses a trust boundary: HTTP response bodies, external file content, target-supplied strings |
+
+`untrusted` findings MUST split evidence into:
+- `evidence_safe`: ≤200-char human description with no raw server values
+- `evidence_quarantined`: populated by quarantine pipeline at ingestion time
+
+Never embed raw server-returned content in `evidence.snippet` for `untrusted` findings.
+
+---
+
+## Deduplication Rule
+
+`deduplication_key` is the stable identity. Format: `<source>:<scope>:<discriminator>`.
+
+Examples:
+- `github:org/repo:akia_prefix`
+- `sqli:host/path:param`
+- `idor:host/route:user_id_param`
+
+When two findings share `dedup_key`, merge: keep highest confidence, union evidence URLs, union grants.
+
+---
+
+## Output Contract for Cookbook Agents
+
+Every cookbook agent MUST emit a JSON array of Findings to `.vanguard/brain/findings/<wave>_<agent>.json` AND its existing markdown deliverable. The brain reads JSON; humans read markdown.
+
+If the agent finds nothing, emit empty array `[]` — never omit the file.

@@ -1,0 +1,219 @@
+{
+  "wave": 1,
+  "critique_timestamp": "2026-05-01T12:00:00Z",
+  "findings_reviewed": 26,
+  "high_value_findings": [
+    "f_a1b2c3d4",
+    "f_a3c9e1f2",
+    "f_cors0001",
+    "f_cors0002",
+    "f_cors0003",
+    "f_b7d42a8c",
+    "f_c2f85b3d",
+    "f_hlth0001",
+    "f_hlth0002",
+    "f_g8c47e5b",
+    "f_d9e17c4b"
+  ],
+  "methodology_gaps": [
+    "No authenticated session obtained — IDOR candidates (f_g8c47e5b) on /rbac/users/{id}/role and /users/{id}/access could not be confirmed without a real auth token; entire RBAC chain remains unvalidated",
+    "GraphQL endpoint confirmed at /graphql (auth-gated) but zero introspection or query testing was performed — schema unknown, mutations unchecked, no authorization bypass attempted",
+    "OIDC nonce absence detected client-side (f_b7d42a8c) but no active Azure AD OIDC flow was exercised; nonce parameter injection and id_token replay were not attempted",
+    "Azure Container Apps environment not probed for metadata endpoint (169.254.169.254 or IMDS), managed identity token theft, or sibling app enumeration under livelystone-c1480484",
+    "Pusher /api/pusher/auth confirmed to exist (307 → login) but no analysis of channel naming conventions, private vs presence channels, or whether channel names are guessable",
+    "pay.copointdata.com subdomain discovered in wave 0 but still uncharacterized — tech stack, auth model, and payment processor unknown",
+    "NEXTAUTH_SECRET strength not tested — JWT session forgery via weak/leaked secret was never attempted",
+    "CSP nonce rotation confirmed but no DOM-based XSS sinks tested — lesson_0_008 noted CSP blocks script injection but non-script sinks (iframe srcdoc, meta refresh, DOM write) remain uninvestigated",
+    "No HTTP request smuggling or host header injection attempted against Vercel reverse proxy layer",
+    "Datadog RUM client token and application ID (NEXT_PUBLIC_DATADOG_*) not tested for cross-tenant data access or RUM session poisoning"
+  ],
+  "lessons": [
+    {
+      "id": "lesson_1_001",
+      "text": "CORS wildcard-with-credentials is now confirmed critical across ALL backend routes — any XSS, postMessage injection, or DOM sink that enables script execution from an attacker origin gives full credentialed API read/write access. Prioritize finding ANY XSS vector in wave 2 even if CSP blocks script-injection, as non-script sinks (iframe srcdoc, blob: URL, data: URL, SVG onload) bypass CSP nonces.",
+      "applies_to_wave": [2, 3, 4],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_1_002",
+      "text": "OIDC nonce absence (f_b7d42a8c) must be validated via active Azure AD flow — open a real OAuth session, capture the id_token JWT, attempt replay with modified sub/email claims. If NextAuth does not reject replayed id_tokens, account takeover is possible for any user whose email is known.",
+      "applies_to_wave": [2, 3],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_1_003",
+      "text": "RBAC IDOR (f_g8c47e5b) on /rbac/users/{id}/role requires authenticated testing. Pattern: authenticate as low-privilege user, enumerate role IDs via /rbac/roles (GET), attempt PUT/POST to /rbac/users/{own_id}/role with admin role ID. Server-side authorization check for self-role-escalation is the key missing validation.",
+      "applies_to_wave": [2, 3],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_1_004",
+      "text": "Azure Container Apps backend on livelystone-c1480484.westus2.azurecontainerapps.io should be probed for IMDS metadata endpoint access (http://169.254.169.254/metadata/instance and http://169.254.169.254/metadata/identity/oauth2/token) — managed identity token from IMDS would give Azure AD Graph access and potential lateral movement to other Azure resources.",
+      "applies_to_wave": [2, 3],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_1_005",
+      "text": "The null-origin CORS reflection (f_a3c9e1f2) enables sandboxed iframe attacks without any XSS — an attacker page can create a sandboxed iframe with srcdoc containing fetch() calls that carry null origin, and the backend will reflect it with credentials:true. This is an independent exploit path that does not require XSS.",
+      "applies_to_wave": [2, 3, 4],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_1_006",
+      "text": "GraphQL at /graphql is auth-gated but introspection may still be enabled for authenticated sessions. Once any authenticated session is obtained, immediately run introspection to map the full schema, identify sensitive mutations (user role changes, data deletions, billing ops), and test for broken object-level authorization in queries.",
+      "applies_to_wave": [2, 3, 4],
+      "priority": "medium"
+    },
+    {
+      "id": "lesson_1_007",
+      "text": "CSRF cookie is non-HttpOnly by design (double-submit pattern) — but this means the CSRF token is readable by JavaScript. Combined with CORS-with-credentials, an attacker performing a CORS-based attack already bypasses CSRF: they can read the csrf-token cookie value via CORS GET /api/auth/csrf and replay it in a subsequent credentialed POST — eliminating the CSRF protection entirely.",
+      "applies_to_wave": [2, 3],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_1_008",
+      "text": "Pay.copointdata.com timed out in wave 0 and was not addressed in wave 1. Given the application handles CRM and revenue operations, a payment subdomain is critical-path. Dedicate a recon pass to characterize the payment subdomain tech stack and auth model before wave 3.",
+      "applies_to_wave": [2, 3],
+      "priority": "medium"
+    },
+    {
+      "id": "lesson_1_009",
+      "text": "PostgreSQL 17.8 version disclosure via unauthenticated /api/health endpoint (f_hlth0001, f_hlth0002) enables targeted CVE lookup for the exact DB version. Wave 2 nuclei should scan for PostgreSQL-specific CVEs and check for /api/health being accessible on production (revops.copointdata.com) as well.",
+      "applies_to_wave": [2, 3],
+      "priority": "medium"
+    },
+    {
+      "id": "lesson_1_010",
+      "text": "Git commit SHA hardcoded in Datadog telemetry (61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1) — if the repository is public or the organization has public GitHub repos, this SHA may allow source code retrieval. Check github.com/copointai or similar orgs for this commit hash.",
+      "applies_to_wave": [2],
+      "priority": "low"
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [
+      {
+        "id": "n_cors_null_origin",
+        "kind": "vuln",
+        "label": "Null-Origin CORS Reflection — Sandboxed Iframe Attack Vector",
+        "value": 5,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "attributes": {
+          "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/",
+          "tags": ["cors", "null-origin", "sandboxed-iframe", "credentials", "confirmed"]
+        },
+        "evidence_findings": ["f_a3c9e1f2"],
+        "first_seen_wave": 1,
+        "confirmed": true
+      },
+      {
+        "id": "n_csrf_cors_bypass",
+        "kind": "vuln",
+        "label": "CSRF Token Readable via Non-HttpOnly Cookie + CORS — Full CSRF Bypass",
+        "value": 4,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0006",
+        "attributes": {
+          "host": "revops-dev.vercel.app",
+          "url": "https://revops-dev.vercel.app/api/backend",
+          "tags": ["csrf", "cors", "cookie", "non-httponly", "bypass", "confirmed"]
+        },
+        "evidence_findings": ["f_c2f85b3d", "f_a1b2c3d4"],
+        "first_seen_wave": 1,
+        "confirmed": true
+      },
+      {
+        "id": "n_azure_imds",
+        "kind": "vuln_candidate",
+        "label": "Azure IMDS Metadata Endpoint — Managed Identity Token Theft",
+        "value": 5,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0006",
+        "attributes": {
+          "host": "169.254.169.254",
+          "url": "http://169.254.169.254/metadata/identity/oauth2/token",
+          "tags": ["azure", "imds", "managed-identity", "ssrf", "container-apps"]
+        },
+        "evidence_findings": [],
+        "first_seen_wave": 1,
+        "confirmed": false
+      },
+      {
+        "id": "n_rbac_idor",
+        "kind": "vuln_candidate",
+        "label": "IDOR on /rbac/users/{id}/role — Privilege Escalation to Admin",
+        "value": 5,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0004",
+        "attributes": {
+          "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/users/{id}/role",
+          "tags": ["idor", "rbac", "privilege-escalation", "authenticated"]
+        },
+        "evidence_findings": ["f_g8c47e5b"],
+        "first_seen_wave": 1,
+        "confirmed": false
+      }
+    ],
+    "add_edges": [
+      {
+        "id": "e_cors_to_csrf_bypass",
+        "from": "n_cors_null_origin",
+        "to": "n_csrf_cors_bypass",
+        "type": "enables",
+        "label": "CORS credentialed request allows reading csrf-token cookie, fully bypassing CSRF protection",
+        "status": "confirmed",
+        "ev": 0.97,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0006",
+        "evidence_findings": ["f_a1b2c3d4", "f_c2f85b3d"]
+      },
+      {
+        "id": "e_rbac_idor_to_privesc",
+        "from": "n_rbac_idor",
+        "to": "n_prod_app",
+        "type": "leads_to",
+        "label": "Successful IDOR on role assignment escalates any user to admin on production app",
+        "status": "candidate",
+        "ev": 0.72,
+        "ptes_phase": "privilege-escalation",
+        "attack_tactic": "TA0004",
+        "evidence_findings": ["f_g8c47e5b"]
+      },
+      {
+        "id": "e_expr_back_to_imds",
+        "from": "n_expr_back",
+        "to": "n_azure_imds",
+        "type": "leads_to",
+        "label": "Azure Container App with managed identity may expose IMDS at 169.254.169.254 for token theft",
+        "status": "candidate",
+        "ev": 0.55,
+        "ptes_phase": "credential-access",
+        "attack_tactic": "TA0006",
+        "evidence_findings": []
+      }
+    ],
+    "update_nodes": [
+      {
+        "id": "n_unauth_api_routes",
+        "update": {
+          "confirmed": true,
+          "label": "CORS + All Backend Routes — Credentialed Cross-Origin Access Confirmed",
+          "evidence_findings": ["f_a1b2c3d4", "f_a3c9e1f2", "f_cors0001", "f_cors0002", "f_cors0003"]
+        }
+      }
+    ],
+    "update_edges": [
+      {
+        "id": "e_health_to_unauth_routes",
+        "update": {
+          "ev": 0.99,
+          "status": "confirmed",
+          "label": "CORS wildcard-with-credentials CONFIRMED on all routes — not just /health. Full credentialed cross-origin API access without any XSS prerequisite via null-origin iframe."
+        }
+      }
+    ]
+  },
+  "stop_reason": null
+}

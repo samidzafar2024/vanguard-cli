@@ -1,0 +1,157 @@
+## Findings JSON Output (MANDATORY)
+
+In addition to your markdown deliverable, you MUST emit a normalized Findings JSON file. The Vanguard hacker brain (Planner / Critic / Chain Hunter) reads this JSON to build the persistent attack graph and reason about chains across waves. Without it, the brain cannot incorporate your work.
+
+### Where to write
+
+`{{REPO_PATH}}/.vanguard/brain/findings/<wave>_<agent>.json`
+
+Where `<wave>` is the current wave number (passed in your prompt as `{{WAVE}}`) and `<agent>` is your agent name (e.g. `injection-vuln`, `osint-recon`).
+
+If the directory does not exist, create it first.
+
+### Schema (per Finding object)
+
+Refer to `prompts/brain/_finding-schema.txt` for the full schema. The required fields are:
+
+```json
+{
+  "id": "f_<8-char-hash>",
+  "wave": <int>,
+  "agent": "<your agent name>",
+  "ptes_phase": "<one of: pre-engagement, intelligence-gathering, threat-modeling, vulnerability-analysis, exploitation, post-exploitation, reporting>",
+  "attack_tactic": "<MITRE ATT&CK tactic ID, e.g. TA0001>",
+  "type": "<finding type from schema vocabulary>",
+  "target": {
+    "url": "<full URL>",
+    "host": "<hostname>",
+    "path": "<path>",
+    "param": "<param name or null>"
+  },
+  "title": "<<=120 chars human summary>",
+  "description": "<1-3 sentences>",
+  "severity": "info | low | medium | high | critical",
+  "confidence": <float 0.0-1.0>,
+  "evidence": {
+    "type": "<source_code | http_response | http_response_header | http_response_diff | github_commit | dns_resolution | tool_output | etc.>",
+    "url": "<reproducible reference URL or file://path>",
+    "snippet": "<key evidence string>",
+    "artifact_path": "<optional path to deliverable section>"
+  },
+  "prerequisites": ["<capability strings required to exploit>"],
+  "grants": ["<capability strings unlocked if exploited>"],
+  "cve_refs": ["<optional CVE IDs>"],
+  "tags": ["<optional searchable tags>"],
+  "deduplication_key": "<source>:<scope>:<discriminator>",
+  "trust_tier": "trusted | derived | untrusted",
+  "evidence_source": "agent_direct | external_response | derived",
+  "provenance": "<agent_name> wave <wave_number>",
+  "evidence_safe": "<≤200-char human summary, no raw server values>",
+  "evidence_quarantined": null
+}
+```
+
+### Capability vocabulary for `prerequisites` / `grants`
+
+Use ONLY strings from this canonical vocabulary (do not invent):
+
+**Identity**: `unauthenticated`, `authenticated_user`, `authenticated_admin`, `tenant_member:<id>`, `valid_email:<domain>`
+
+**Credentials**: `username_list`, `password_hash:<user_id>`, `cleartext_password:<user_id>`, `oauth_token:<provider>`, `jwt_secret`, `api_key:<service>`, `aws_iam_credential`, `gcp_service_account`, `azure_credential`, `database_credential`
+
+**Data access**: `db_read`, `db_write`, `file_read:<scope>`, `file_write:<scope>`, `s3_bucket_access:<bucket>`, `internal_network_access`
+
+**Code execution**: `client_js_execution:<scope>`, `server_command_execution`, `subprocess_spawn`
+
+**Pivots**: `ssrf:<scope>`, `jwt_forge`, `session_hijack:<user_id>`, `password_reset_for:<user_id>`
+
+**Info leaks**: `username_enumeration`, `email_enumeration`, `internal_url_disclosure`, `stack_trace_disclosure`, `version_disclosure`, `source_code_disclosure`
+
+If you genuinely have a capability not in this list, prefix it with the closest existing kind and append a specific qualifier — e.g. `db_read:postgres_14_only` rather than inventing a new top-level kind.
+
+### Severity calibration (CVSS-aligned)
+
+| Level | CVSS | Examples |
+|---|---|---|
+| `info` | <2.0 | banner, version disclosure, no-default-creds confirmation |
+| `low` | 2.0-3.9 | username enumeration, weak header |
+| `medium` | 4.0-6.9 | reflected XSS, IDOR with limited impact, exposed admin login surface |
+| `high` | 7.0-8.9 | stored XSS, SQLi (read), broken auth, weak JWT, leaked credential (unvalidated) |
+| `critical` | 9.0+ | RCE, SQLi (write), full auth bypass, leaked admin creds (validated), forged admin session |
+
+### Confidence calibration
+
+| Range | Meaning |
+|---|---|
+| 0.95-1.00 | proven by tool with response capture / reproducible |
+| 0.80-0.94 | strong heuristic match, manual review needed |
+| 0.60-0.79 | likely true positive, needs validation |
+| 0.40-0.59 | suspicious, low-noise tool finding |
+| <0.40 | discard or downgrade to hypothesis (do not emit) |
+
+### Trust Tier (REQUIRED)
+
+Every finding MUST include a `trust_tier` field. Use the correct tier based on how you obtained the evidence:
+
+| Tier | When to use |
+|---|---|
+| `trusted` | You ran a tool and read its output directly (nmap, sqlmap, nuclei, schemathesis, AST analysis) |
+| `derived` | You inferred this from trusted findings via reasoning (e.g. "based on the SQLi in `/search`, `/api/search` is likely vulnerable too") |
+| `untrusted` | The evidence contains or is based on an HTTP response body, server error message, external file content, or any content the target application returned |
+
+#### Evidence split for `untrusted` findings
+
+When `trust_tier` is `untrusted`:
+- Set `evidence_safe` to a ≤200-char human-readable description with **no raw values** from the response (e.g. `"Server error page exposed stack trace mentioning Laravel 8 and MySQL 5.7"`)
+- Leave `evidence.snippet` blank or set it to `[see evidence_quarantined]`
+- The quarantine pipeline (`quarantine digest`) will populate `evidence_quarantined` automatically when findings are ingested
+- Do NOT reproduce HTTP response bodies, error messages, or server-returned strings verbatim in any other field
+
+Also set `evidence_source` to one of:
+- `agent_direct` — for `trusted` findings
+- `external_response` — for `untrusted` findings
+- `derived` — for `derived` findings
+
+And set `provenance` to `"<agent_name> wave <wave_number>"` (e.g. `"injection-vuln wave 3"`).
+
+### Output rules
+
+1. **Always emit the file**, even if no findings — empty array `[]` is required (signals "wave ran, nothing found").
+2. **Multiple findings** go in a single JSON array; do NOT emit multiple files per agent.
+3. **Negative results matter** — if you tested IDOR and it didn't work, emit a finding with `severity: info`, `type: tech_stack_disclosure`, and a tag like `negative` or `not-vulnerable`. The brain uses negative findings to refute hallucinated chains.
+4. **Deduplication key** must be stable — same finding from different waves should generate the same `deduplication_key`. Format: `<source>:<scope>:<discriminator>`.
+5. **Cite reproducible evidence** — `evidence.url` should be something the operator can re-verify (curl command, commit URL, file path with line number).
+
+### Example emission
+
+After writing your markdown deliverable, do this:
+
+```bash
+mkdir -p "{{REPO_PATH}}/.vanguard/brain/findings"
+cat > "{{REPO_PATH}}/.vanguard/brain/findings/{{WAVE}}_<your_agent>.json" << 'EOF'
+[
+  {
+    "id": "f_a1b2c3d4",
+    "wave": {{WAVE}},
+    "agent": "<your_agent>",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "<your_agent> wave {{WAVE}}",
+    "evidence_safe": "<brief human description>",
+    "evidence_quarantined": null,
+    ...
+  }
+]
+EOF
+```
+
+Or use the Write tool directly with the same content.
+
+### Failure to emit findings JSON
+
+If you skip this step:
+- The brain will fall back to extracting Findings from your markdown via a finding-extractor sub-agent (lossy, error-prone)
+- Your work will appear in the report but will not contribute to chain reasoning
+- The Critic will flag the missing emission as a methodology error
+
+Do not skip this step.

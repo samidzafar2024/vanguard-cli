@@ -1,0 +1,138 @@
+[
+  {
+    "id": "f_sc001abc",
+    "wave": 3,
+    "agent": "supply-chain",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0043",
+    "type": "version_disclosure",
+    "target": {
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/7f9e9c54ac262de2.js",
+      "host": "revops-dev.vercel.app",
+      "path": "/_next/static/chunks/7f9e9c54ac262de2.js",
+      "param": null
+    },
+    "title": "Next.js 16.1.6 version disclosed in client-side JavaScript bundle",
+    "description": "The production JavaScript bundle emits `window.next={version:\"16.1.6\",appDir:true}` and `window.next.turbopack=true`, exposing the exact Next.js version and build toolchain to unauthenticated clients. React version 19.3.0 is similarly disclosed in the framework chunk. This enables attackers to research version-specific future CVEs.",
+    "severity": "low",
+    "confidence": 0.99,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.vercel.app/_next/static/chunks/7f9e9c54ac262de2.js",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["supply-chain", "version-disclosure", "next.js", "information-disclosure"],
+    "deduplication_key": "supply-chain:revops-dev.vercel.app:nextjs-version-disclosure",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "supply-chain wave 3",
+    "evidence_safe": "window.next={version:\"16.1.6\",appDir:true} found in JS bundle chunk 7f9e9c54ac262de2.js; React 19.3.0 in 6fd9b82a5c9eca06.js",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_sc002def",
+    "wave": 3,
+    "agent": "supply-chain",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0043",
+    "type": "version_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "Express.js framework version disclosed via x-powered-by response header",
+    "description": "The backend Azure Container Apps instance returns `x-powered-by: Express` on all HTTP responses including health and error endpoints. While the specific Express version is not disclosed, the framework fingerprint enables targeted exploitation research and is trivially suppressible.",
+    "severity": "info",
+    "confidence": 0.99,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["supply-chain", "version-disclosure", "express", "information-disclosure"],
+    "deduplication_key": "supply-chain:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:express-header-disclosure",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "supply-chain wave 3",
+    "evidence_safe": "Response header x-powered-by: Express confirmed on Azure Container Apps backend; version number not disclosed but framework fingerprinted",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_sc003ghi",
+    "wave": 3,
+    "agent": "supply-chain",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0001",
+    "type": "cve",
+    "target": {
+      "url": "https://revops-dev.vercel.app/dashboard",
+      "host": "revops-dev.vercel.app",
+      "path": "/dashboard",
+      "param": "x-middleware-subrequest"
+    },
+    "title": "CVE-2025-29927 Next.js middleware auth bypass: NOT VULNERABLE (version 16.1.6 >= 15.2.3)",
+    "description": "CVE-2025-29927 affects Next.js < 15.2.3 and allows bypassing middleware authentication by sending a crafted x-middleware-subrequest header. Target is running Next.js 16.1.6 and is not affected. Active testing confirmed: bypass header returns identical 307 redirect to /login for all tested protected routes (/dashboard, /settings, /admin).",
+    "severity": "info",
+    "confidence": 0.97,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.vercel.app/dashboard",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": ["CVE-2025-29927"],
+    "tags": ["supply-chain", "cve", "next.js", "middleware-bypass", "not-vulnerable"],
+    "deduplication_key": "supply-chain:revops-dev.vercel.app:cve-2025-29927",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "supply-chain wave 3",
+    "evidence_safe": "Normal: HTTP 307 /dashboard->login. With x-middleware-subrequest bypass header: HTTP 307 (identical). Next.js 16.1.6 > 15.2.3 threshold. Not exploitable.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_sc004jkl",
+    "wave": 3,
+    "agent": "supply-chain",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0001",
+    "type": "cve",
+    "target": {
+      "url": "https://revops-dev.vercel.app/api/auth/signin/azure-ad",
+      "host": "revops-dev.vercel.app",
+      "path": "/api/auth/signin/azure-ad",
+      "param": "callbackUrl"
+    },
+    "title": "CVE-2023-48309 NextAuth.js open redirect: NOT EXPLOITABLE (callbackUrl validation active)",
+    "description": "CVE-2023-48309 affects NextAuth.js < 4.24.5 and allows open redirect via callbackUrl parameter. Active testing confirmed NextAuth rejects external callbackUrls: POST to /api/auth/signin/azure-ad with callbackUrl=https://evil.attacker.com returns the internal signin URL, and the callback-url cookie is always set to the application origin. The cookie naming convention (__Host-next-auth.csrf-token) indicates v4.x.",
+    "severity": "info",
+    "confidence": 0.90,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.vercel.app/api/auth/signin/azure-ad",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": ["CVE-2023-48309"],
+    "tags": ["supply-chain", "cve", "next-auth", "open-redirect", "not-exploitable"],
+    "deduplication_key": "supply-chain:revops-dev.vercel.app:cve-2023-48309",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "supply-chain wave 3",
+    "evidence_safe": "POST /api/auth/signin/azure-ad with callbackUrl=https://evil.attacker.com returned {url:https://revops-dev.vercel.app/api/auth/signin?csrf=true}. External URL rejected. Cookie callback-url always set to origin.",
+    "evidence_quarantined": null
+  }
+]

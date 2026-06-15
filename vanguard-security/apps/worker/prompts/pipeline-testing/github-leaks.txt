@@ -1,0 +1,8 @@
+@include(shared/_filesystem.txt)
+
+Please complete these tasks:
+
+1. Save a GitHub leaks deliverable:
+   - Run: `save-deliverable --type GITHUB_LEAKS --content '# GitHub Leak Scan Deliverable\n\nGitHub secret scan complete. No leaked credentials detected.'`
+
+As a final step, announce completion.

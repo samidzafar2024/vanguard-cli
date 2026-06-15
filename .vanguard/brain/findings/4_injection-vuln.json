@@ -1,0 +1,25 @@
+[
+  {
+    "id": "f_inj00001",
+    "wave": 4, "agent": "injection-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0006",
+    "type": "sql_injection",
+    "target": {"url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/users/1'", "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io", "path": "/users/{id}", "param": "id"},
+    "title": "SQL/NoSQL injection not testable unauthenticated — global 401 blocks all probes",
+    "description": "SQL injection in path params and NoSQL injection via JSON body both return 401. No injection surface is reachable unauthenticated. Requires authenticated session via chain_002 to test properly.",
+    "severity": "info",
+    "confidence": 0.9,
+    "evidence": {"type": "http_response", "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/users/1'", "snippet": "[see evidence_quarantined]", "artifact_path": null},
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["injection", "sqli", "nosqli", "needs-auth"],
+    "deduplication_key": "injection-vuln:livelystone-c1480484:injection_blocked_401",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "injection-vuln wave 4",
+    "evidence_safe": "SQL injection path params and NoSQL JSON injection both return 401 — not testable unauthenticated",
+    "evidence_quarantined": null
+  }
+]

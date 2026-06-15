@@ -1,0 +1,1067 @@
+{
+  "version": 1,
+  "engagement_id": "eng_1777644595_d8afb3",
+  "target": {
+    "url": "https://revops-dev.vercel.app",
+    "host": "revops-dev.vercel.app",
+    "scope_hosts": [
+      "revops-dev.vercel.app"
+    ]
+  },
+  "created_at": "2026-05-01T14:09:56.290Z",
+  "updated_at": "2026-05-02T15:01:28.596Z",
+  "wave": 5,
+  "nodes": {
+    "n_0e02b4d2": {
+      "id": "n_0e02b4d2",
+      "kind": "access",
+      "label": "engagement start (unauthenticated)",
+      "value": 1,
+      "ptes_phase": "pre-engagement",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "state": "unauthenticated"
+      },
+      "evidence_findings": [],
+      "first_seen_wave": 0,
+      "confirmed": true
+    },
+    "n_auth_next": {
+      "id": "n_auth_next",
+      "kind": "asset",
+      "label": "NextAuth.js /api/auth/* endpoints",
+      "value": 3,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "revops-dev.vercel.app",
+        "url": "https://revops-dev.vercel.app/api/auth/",
+        "tags": [
+          "nextauth",
+          "oauth2",
+          "azure-ad",
+          "authentication",
+          "api-endpoint"
+        ]
+      },
+      "evidence_findings": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": true
+    },
+    "n_expr_back": {
+      "id": "n_expr_back",
+      "kind": "service",
+      "label": "Express.js Backend API on Azure Container Apps",
+      "value": 4,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "tags": [
+          "express",
+          "nodejs",
+          "azure",
+          "container-apps",
+          "backend-api"
+        ]
+      },
+      "evidence_findings": [
+        "f_c3d4e5f6",
+        "f_d4e5f6a7",
+        "f_e5f6a7b8"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": true
+    },
+    "n_push_ws": {
+      "id": "n_push_ws",
+      "kind": "service",
+      "label": "Pusher WebSocket Real-Time Service",
+      "value": 2,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "pusher.com",
+        "url": "wss://*.pusher.com",
+        "tags": [
+          "pusher",
+          "websocket",
+          "realtime",
+          "channel-auth"
+        ]
+      },
+      "evidence_findings": [
+        "f_d0e1f2a3"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_oauth_cb": {
+      "id": "n_oauth_cb",
+      "kind": "vuln_candidate",
+      "label": "OAuth2 callbackUrl Open Redirect Parameter",
+      "value": 5,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "attributes": {
+        "host": "revops-dev.vercel.app",
+        "url": "https://revops-dev.vercel.app/api/auth/callback/azure-ad?callbackUrl=",
+        "tags": [
+          "oauth2",
+          "open-redirect",
+          "callback",
+          "nextauth",
+          "unvalidated-redirect"
+        ]
+      },
+      "evidence_findings": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_health_ep": {
+      "id": "n_health_ep",
+      "kind": "asset",
+      "label": "Unauthenticated /health Endpoint (env:production disclosure)",
+      "value": 2,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+        "tags": [
+          "health-endpoint",
+          "info-disclosure",
+          "unauthenticated",
+          "environment"
+        ]
+      },
+      "evidence_findings": [
+        "f_d4e5f6a7"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": true
+    },
+    "n_pay_sub": {
+      "id": "n_pay_sub",
+      "kind": "asset",
+      "label": "Payment Subdomain pay.copointdata.com",
+      "value": 4,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "pay.copointdata.com",
+        "url": "https://pay.copointdata.com",
+        "tags": [
+          "subdomain",
+          "payment",
+          "high-value",
+          "uncharacterized"
+        ]
+      },
+      "evidence_findings": [
+        "f_a7b8c9d0"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_accel_sub": {
+      "id": "n_accel_sub",
+      "kind": "asset",
+      "label": "Accelerate Subdomain accelerate.copointdata.com",
+      "value": 2,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "accelerate.copointdata.com",
+        "url": "https://accelerate.copointdata.com",
+        "tags": [
+          "subdomain",
+          "recon",
+          "uncharacterized"
+        ]
+      },
+      "evidence_findings": [
+        "f_f6a7b8c9"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_dd_rum": {
+      "id": "n_dd_rum",
+      "kind": "service",
+      "label": "Datadog Browser RUM Telemetry Pipeline",
+      "value": 1,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "datadoghq.com",
+        "url": "https://browser-intake-datadoghq.com",
+        "tags": [
+          "datadog",
+          "rum",
+          "telemetry",
+          "monitoring",
+          "data-leakage-risk"
+        ]
+      },
+      "evidence_findings": [
+        "f_c9d0e1f2"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": true
+    },
+    "n_prod_app": {
+      "id": "n_prod_app",
+      "kind": "asset",
+      "label": "Production Deployment revops.copointdata.com",
+      "value": 5,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "attributes": {
+        "host": "revops.copointdata.com",
+        "url": "https://revops.copointdata.com",
+        "tags": [
+          "production",
+          "vercel",
+          "high-value"
+        ]
+      },
+      "evidence_findings": [
+        "f_a7b8c9d0"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": true
+    },
+    "n_test2": {
+      "id": "n_test2",
+      "kind": "asset",
+      "label": "temp2",
+      "value": 1,
+      "ptes_phase": "pre-engagement",
+      "attack_tactic": "TA0043",
+      "attributes": {},
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_session_hijack": {
+      "id": "n_session_hijack",
+      "kind": "impact",
+      "label": "Session Hijack via OAuth Open Redirect",
+      "value": 5,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "attributes": {
+        "impact_type": "session_hijack",
+        "affected_asset": "revops-dev.vercel.app",
+        "tags": [
+          "session-hijack",
+          "oauth",
+          "credential-theft",
+          "high-impact"
+        ]
+      },
+      "evidence_findings": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_unauth_api_routes": {
+      "id": "n_unauth_api_routes",
+      "kind": "vuln_candidate",
+      "label": "Unauthenticated Express API Routes (production data exposure)",
+      "value": 5,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/api/",
+        "tags": [
+          "unauthenticated",
+          "api-route",
+          "express",
+          "data-exposure",
+          "production"
+        ]
+      },
+      "evidence_findings": [
+        "f_d4e5f6a7",
+        "f_c3d4e5f6"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_oidc_state_bypass": {
+      "id": "n_oidc_state_bypass",
+      "kind": "vuln_candidate",
+      "label": "Azure AD OIDC State/Nonce Parameter Bypass",
+      "value": 4,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "attributes": {
+        "host": "revops-dev.vercel.app",
+        "url": "https://revops-dev.vercel.app/api/auth/callback/azure-ad",
+        "tags": [
+          "oidc",
+          "state-bypass",
+          "nonce-bypass",
+          "azure-ad",
+          "nextauth"
+        ]
+      },
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ],
+      "first_seen_wave": 0,
+      "confirmed": false
+    },
+    "n_cors_misconfig": {
+      "id": "n_cors_misconfig",
+      "kind": "vuln_candidate",
+      "label": "CORS Misconfiguration on Express Backend (Credentials-Bearing Cross-Origin)",
+      "value": 4,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/",
+        "tags": [
+          "cors",
+          "misconfiguration",
+          "cross-origin",
+          "credentials",
+          "data-exfil"
+        ],
+        "lesson_ref": "lesson_0_009"
+      },
+      "evidence_findings": [
+        "f_c3d4e5f6",
+        "f_d4e5f6a7"
+      ],
+      "first_seen_wave": 1,
+      "confirmed": false
+    },
+    "n_nextjs_bundle_secrets": {
+      "id": "n_nextjs_bundle_secrets",
+      "kind": "vuln_candidate",
+      "label": "Hardcoded Secrets / API Keys in Next.js Static Bundles",
+      "value": 4,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0006",
+      "attributes": {
+        "host": "revops-dev.vercel.app",
+        "url": "https://revops-dev.vercel.app/_next/static/chunks/",
+        "tags": [
+          "secret-disclosure",
+          "nextjs",
+          "bundle",
+          "hardcoded-token"
+        ],
+        "lesson_ref": "lesson_0_007"
+      },
+      "evidence_findings": [
+        "f_b2c3d4e5",
+        "f_a1b2c3d4"
+      ],
+      "first_seen_wave": 1,
+      "confirmed": false
+    },
+    "n_cors_null_origin": {
+      "id": "n_cors_null_origin",
+      "kind": "vuln",
+      "label": "Null-Origin CORS Reflection — Sandboxed Iframe Attack Vector",
+      "value": 5,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/",
+        "tags": [
+          "cors",
+          "null-origin",
+          "sandboxed-iframe",
+          "credentials",
+          "confirmed"
+        ]
+      },
+      "evidence_findings": [
+        "f_a3c9e1f2"
+      ],
+      "first_seen_wave": 1,
+      "confirmed": true
+    },
+    "n_csrf_cors_bypass": {
+      "id": "n_csrf_cors_bypass",
+      "kind": "vuln",
+      "label": "CSRF Token Readable via Non-HttpOnly Cookie + CORS — Full CSRF Bypass",
+      "value": 4,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0006",
+      "attributes": {
+        "host": "revops-dev.vercel.app",
+        "url": "https://revops-dev.vercel.app/api/backend",
+        "tags": [
+          "csrf",
+          "cors",
+          "cookie",
+          "non-httponly",
+          "bypass",
+          "confirmed"
+        ]
+      },
+      "evidence_findings": [
+        "f_c2f85b3d",
+        "f_a1b2c3d4"
+      ],
+      "first_seen_wave": 1,
+      "confirmed": true
+    },
+    "n_rbac_idor": {
+      "id": "n_rbac_idor",
+      "kind": "vuln_candidate",
+      "label": "IDOR on /rbac/users/{id}/role — Privilege Escalation to Admin",
+      "value": 5,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0004",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/users/{id}/role",
+        "tags": [
+          "idor",
+          "rbac",
+          "privilege-escalation",
+          "authenticated"
+        ]
+      },
+      "evidence_findings": [
+        "f_g8c47e5b"
+      ],
+      "first_seen_wave": 1,
+      "confirmed": false
+    },
+    "n_graphql_ep": {
+      "id": "n_graphql_ep",
+      "kind": "asset",
+      "label": "GraphQL Endpoint /graphql (auth-gated, introspection unknown)",
+      "value": 4,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "attributes": {
+        "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+        "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/graphql",
+        "tags": [
+          "graphql",
+          "auth-gated",
+          "introspection-unknown",
+          "api"
+        ]
+      },
+      "evidence_findings": [
+        "f_api00001",
+        "f_api00002"
+      ],
+      "first_seen_wave": 1,
+      "confirmed": true
+    },
+    "n_cors_null_exploit": {
+      "id": "n_cors_null_exploit",
+      "kind": "access",
+      "label": "CORS null-origin sandboxed iframe exploitation path — no XSS required",
+      "value": 9,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "attributes": {
+        "exploit_type": "cors_null_origin_iframe",
+        "requires_victim_visit": true,
+        "auth_required": false
+      },
+      "evidence_findings": [
+        "f_b9f2d4a8",
+        "f_a3c7e1d2"
+      ],
+      "first_seen_wave": 2
+    },
+    "n_github_leaks_target": {
+      "id": "n_github_leaks_target",
+      "kind": "asset",
+      "label": "GitHub org copointdata/copointai — potential NEXTAUTH_SECRET and Azure credential leak",
+      "value": 9,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0006",
+      "attributes": {
+        "git_sha": "61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1",
+        "azure_tenant_id": "9046c3d1-04fe-4afe-9e4f-9217f27b5a66",
+        "target_secrets": [
+          "NEXTAUTH_SECRET",
+          "DATABASE_URL",
+          "AZURE_CLIENT_SECRET"
+        ]
+      },
+      "evidence_findings": [
+        "f_a3d9f1c7",
+        "f_e5f8c3b1"
+      ],
+      "first_seen_wave": 2
+    },
+    "n_azure_imds": {
+      "id": "n_azure_imds",
+      "kind": "asset",
+      "label": "Azure IMDS 169.254.169.254 — managed identity OAuth token endpoint",
+      "value": 9,
+      "ptes_phase": "post-exploitation",
+      "attack_tactic": "TA0006",
+      "evidence_findings": [
+        "f_ssrf8af1",
+        "f_b7e2d4a9"
+      ],
+      "first_seen_wave": 2
+    },
+    "n_rbac_api": {
+      "id": "n_rbac_api",
+      "kind": "access",
+      "label": "RBAC API /rbac/users/{id}/role — auth-gated role management endpoint",
+      "value": 7,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0004",
+      "evidence_findings": [
+        "f_ssrf8af1"
+      ],
+      "first_seen_wave": 2
+    },
+    "n_oidc_provider": {
+      "id": "n_oidc_provider",
+      "kind": "asset",
+      "label": "Azure AD OIDC Provider — Tenant 9046c3d1-04fe-4afe-9e4f-9217f27b5a66",
+      "value": 8,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0006",
+      "evidence_findings": [
+        "f_c1a4b2e8",
+        "f_c0rs4321"
+      ],
+      "first_seen_wave": 2
+    },
+    "n_wave3_github_scan": {
+      "id": "n_wave3_github_scan",
+      "kind": "access",
+      "label": "Wave 3 GitHub secrets scan — copointdata/copointai org targeted",
+      "value": 9,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0006",
+      "evidence_findings": [
+        "f_a3d9f1c7",
+        "f_d2a6e9f4"
+      ],
+      "first_seen_wave": 2
+    },
+    "n_wave3_osint": {
+      "id": "n_wave3_osint",
+      "kind": "access",
+      "label": "Wave 3 OSINT — CoPoint AI employee enumeration via LinkedIn/Apollo/breaches",
+      "value": 7,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_xpwrby55",
+        "f_e5f8c3b1"
+      ],
+      "first_seen_wave": 2
+    }
+  },
+  "edges": [
+    {
+      "id": "e_seed_to_auth",
+      "from_node": "n_0e02b4d2",
+      "to_node": "n_auth_next",
+      "type": "exposes",
+      "label": "unauthenticated access to auth provider metadata",
+      "status": "confirmed",
+      "ev": 0.95,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ]
+    },
+    {
+      "id": "e_seed_to_backend",
+      "from_node": "n_0e02b4d2",
+      "to_node": "n_expr_back",
+      "type": "exposes",
+      "label": "unauthenticated /health endpoint on backend API",
+      "status": "confirmed",
+      "ev": 0.98,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_d4e5f6a7"
+      ]
+    },
+    {
+      "id": "e_auth_to_oauth_cb",
+      "from_node": "n_auth_next",
+      "to_node": "n_oauth_cb",
+      "type": "leads_to",
+      "label": "OAuth2 callback flow exposes callbackUrl redirect parameter",
+      "status": "refuted",
+      "ev": 0.75,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "evidence_findings": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ]
+    },
+    {
+      "id": "e_backend_health",
+      "from_node": "n_expr_back",
+      "to_node": "n_health_ep",
+      "type": "exposes",
+      "label": "backend exposes /health with env:production label without auth",
+      "status": "confirmed",
+      "ev": 0.98,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_d4e5f6a7"
+      ]
+    },
+    {
+      "id": "e_backend_pusher",
+      "from_node": "n_expr_back",
+      "to_node": "n_push_ws",
+      "type": "enables",
+      "label": "backend provides Pusher channel authorization",
+      "status": "candidate",
+      "ev": 0.7,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_d0e1f2a3"
+      ]
+    },
+    {
+      "id": "e_seed_to_pay",
+      "from_node": "n_0e02b4d2",
+      "to_node": "n_pay_sub",
+      "type": "leads_to",
+      "label": "payment subdomain discovered via passive DNS enumeration",
+      "status": "candidate",
+      "ev": 0.6,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_a7b8c9d0"
+      ]
+    },
+    {
+      "id": "e_seed_to_accel",
+      "from_node": "n_0e02b4d2",
+      "to_node": "n_accel_sub",
+      "type": "leads_to",
+      "label": "accelerate subdomain discovered via passive DNS enumeration",
+      "status": "candidate",
+      "ev": 0.55,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_f6a7b8c9"
+      ]
+    },
+    {
+      "id": "e_auth_requires_backend",
+      "from_node": "n_auth_next",
+      "to_node": "n_expr_back",
+      "type": "requires",
+      "label": "NextAuth.js session tokens required for backend API access",
+      "status": "confirmed",
+      "ev": 0.95,
+      "ptes_phase": "intelligence-gathering",
+      "attack_tactic": "TA0043",
+      "evidence_findings": [
+        "f_c3d4e5f6"
+      ]
+    },
+    {
+      "id": "e_oauth_to_prod",
+      "from_node": "n_oauth_cb",
+      "to_node": "n_prod_app",
+      "type": "leads_to",
+      "label": "auth bypass on dev could enable pivot to production deployment",
+      "status": "candidate",
+      "ev": 0.5,
+      "ptes_phase": "lateral-movement",
+      "attack_tactic": "TA0008",
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ]
+    },
+    {
+      "id": "e_test_edge",
+      "from_node": "n_auth_next",
+      "to_node": "n_test2",
+      "type": "leads_to",
+      "label": "test",
+      "status": "candidate",
+      "ev": 0.5,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ]
+    },
+    {
+      "id": "e_oauth_cb_to_session_hijack",
+      "from_node": "n_oauth_cb",
+      "to_node": "n_session_hijack",
+      "type": "leads_to",
+      "label": "chain_001: Unvalidated callbackUrl redirect delivers session token to attacker",
+      "status": "candidate",
+      "ev": 0.82,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "evidence_findings": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ]
+    },
+    {
+      "id": "e_health_to_unauth_routes",
+      "from_node": "n_health_ep",
+      "to_node": "n_unauth_api_routes",
+      "type": "leads_to",
+      "label": "chain_002: env:production unauthenticated /health signals broader route exposure on production-config backend",
+      "status": "confirmed",
+      "ev": 0.79,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "evidence_findings": [
+        "f_d4e5f6a7",
+        "f_c3d4e5f6"
+      ],
+      "confirmed_at_wave": 1
+    },
+    {
+      "id": "e_auth_to_oidc_bypass",
+      "from_node": "n_auth_next",
+      "to_node": "n_oidc_state_bypass",
+      "type": "leads_to",
+      "label": "chain_003: Azure AD provider state/nonce parameter weakness enables CSRF or token substitution",
+      "status": "candidate",
+      "ev": 0.71,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0001",
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ]
+    },
+    {
+      "id": "e_oidc_bypass_to_prod",
+      "from_node": "n_oidc_state_bypass",
+      "to_node": "n_prod_app",
+      "type": "leads_to",
+      "label": "chain_003: Successful OIDC state/nonce bypass authenticates attacker as arbitrary user on production",
+      "status": "candidate",
+      "ev": 0.65,
+      "ptes_phase": "lateral-movement",
+      "attack_tactic": "TA0008",
+      "evidence_findings": [
+        "f_b8c9d0e1"
+      ]
+    },
+    {
+      "id": "e_session_hijack_to_prod",
+      "from_node": "n_session_hijack",
+      "to_node": "n_prod_app",
+      "type": "leads_to",
+      "label": "chain_001: Hijacked session reused against production deployment for full authenticated access",
+      "status": "candidate",
+      "ev": 0.75,
+      "ptes_phase": "lateral-movement",
+      "attack_tactic": "TA0008",
+      "evidence_findings": [
+        "f_b8c9d0e1",
+        "f_a7b8c9d0"
+      ]
+    },
+    {
+      "id": "e_backend_to_cors_misconfig",
+      "from_node": "n_expr_back",
+      "to_node": "n_cors_misconfig",
+      "type": "leads_to",
+      "label": "Express backend CORS headers uncaptured - credentials-bearing cross-origin access unassessed (lesson_0_009)",
+      "status": "candidate",
+      "ev": 0.65,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "evidence_findings": [
+        "f_c3d4e5f6",
+        "f_d4e5f6a7"
+      ]
+    },
+    {
+      "id": "e_auth_to_bundle_secrets",
+      "from_node": "n_auth_next",
+      "to_node": "n_nextjs_bundle_secrets",
+      "type": "leads_to",
+      "label": "Next.js static bundles accessible - potential secret disclosure in client-side chunks (lesson_0_007)",
+      "status": "candidate",
+      "ev": 0.6,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0006",
+      "evidence_findings": [
+        "f_b2c3d4e5",
+        "f_a1b2c3d4"
+      ]
+    },
+    {
+      "id": "e_cors_to_csrf_bypass",
+      "type": "enables",
+      "label": "CORS credentialed request allows reading csrf-token cookie, fully bypassing CSRF protection",
+      "status": "confirmed",
+      "ev": 0.97,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0006",
+      "evidence_findings": [
+        "f_a1b2c3d4",
+        "f_c2f85b3d"
+      ],
+      "from_node": "n_cors_null_origin",
+      "to_node": "n_csrf_cors_bypass"
+    },
+    {
+      "id": "e_rbac_idor_to_privesc",
+      "type": "leads_to",
+      "label": "Successful IDOR on role assignment escalates any user to admin on production app",
+      "status": "candidate",
+      "ev": 0.72,
+      "ptes_phase": "privilege-escalation",
+      "attack_tactic": "TA0004",
+      "evidence_findings": [
+        "f_g8c47e5b"
+      ],
+      "from_node": "n_rbac_idor",
+      "to_node": "n_prod_app"
+    },
+    {
+      "id": "e_expr_back_to_graphql",
+      "from_node": "n_expr_back",
+      "to_node": "n_graphql_ep",
+      "type": "hosts",
+      "label": "Express backend hosts GraphQL endpoint — confirmed auth-gated at /graphql (chain_005)",
+      "status": "confirmed",
+      "ev": 0.95,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "evidence_findings": [
+        "f_api00001"
+      ]
+    },
+    {
+      "id": "e_cors_null_to_exfil",
+      "from_node": "n_cors_null_origin",
+      "to_node": "n_unauth_api_routes",
+      "type": "enables",
+      "label": "Null-origin CORS enables sandboxed iframe → full credentialed API access without XSS (chain_002)",
+      "status": "confirmed",
+      "ev": 0.97,
+      "ptes_phase": "exploitation",
+      "attack_tactic": "TA0009",
+      "evidence_findings": [
+        "f_a1b2c3d4",
+        "f_a3c9e1f2"
+      ]
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj_w1_001",
+      "title": "Confirm Unauthenticated Express API Routes and CORS Misconfiguration",
+      "description": "Enumerate backend routes beyond /health and capture CORS headers to assess credentials-bearing cross-origin data access",
+      "supporting_chain": "chain_002",
+      "priority": "critical",
+      "status": "open",
+      "opened_wave": 1,
+      "stickiness": 0
+    },
+    {
+      "id": "obj_w1_002",
+      "title": "Extract callbackUrl Logic and Secrets from Next.js Bundles",
+      "description": "Fetch and analyze Next.js JS bundles to confirm CVE-2023-48309 applicability and discover hardcoded credentials",
+      "supporting_chain": "chain_001",
+      "priority": "critical",
+      "status": "open",
+      "opened_wave": 1,
+      "stickiness": 0
+    },
+    {
+      "id": "obj_w1_003",
+      "title": "Assess OIDC State/Nonce Weakness and NEXTAUTH_SECRET Strength",
+      "description": "Identify auth code patterns suggesting OIDC misconfiguration or weak secret enabling JWT forgery",
+      "supporting_chain": "chain_003",
+      "priority": "high",
+      "status": "open",
+      "opened_wave": 1,
+      "stickiness": 0.85
+    },
+    {
+      "id": "obj_004",
+      "title": "Confirm null-origin CORS sandboxed iframe PoC for chain_002",
+      "description": "Confirm null-origin sandboxed iframe CORS exploit delivers credentialed responses from /auth/me and /rbac/me/permissions — establish live PoC for chain_002",
+      "supporting_chain": "chain_002",
+      "priority": "critical",
+      "success_criteria": "HTTP 200 response to /auth/me with user data returned via credentialed CORS request from sandboxed iframe or attacker origin — PoC artifact captured",
+      "opened_wave": 1,
+      "stickiness": 0.7,
+      "status": "in_progress",
+      "notes": "Wave 2 confirmed null-origin CORS with credentials — sandboxed iframe PoC path clear for Wave 5. No XSS prerequisite needed."
+    },
+    {
+      "id": "obj_005",
+      "title": "Azure IMDS Managed Identity Token Access Assessment",
+      "description": "Determine if Azure Container App has managed identity assigned and if IMDS endpoint is reachable — assess lateral movement potential via managed identity token theft",
+      "supporting_chain": "chain_006",
+      "priority": "high",
+      "success_criteria": "IMDS endpoint response OR confirmation of managed identity scope in Azure AD — any Azure resource access token obtained via metadata endpoint",
+      "opened_wave": 1,
+      "stickiness": 0.24999999999999992,
+      "status": "open"
+    },
+    {
+      "id": "obj_006",
+      "title": "Azure AD OIDC Nonce Enforcement Validation for chain_003",
+      "description": "Test Azure AD OIDC nonce enforcement in NextAuth — attempt id_token with absent or mismatched nonce claim and observe whether session is created",
+      "supporting_chain": "chain_003",
+      "priority": "high",
+      "success_criteria": "NextAuth accepts replayed id_token with modified claims OR confirms nonce is not validated",
+      "opened_wave": 1,
+      "stickiness": 0.24999999999999992,
+      "status": "open"
+    },
+    {
+      "id": "obj_007",
+      "title": "CVE Scan on PostgreSQL 17.8, Express.js, Next.js 16.1.6 Stack",
+      "description": "Enumerate CVEs applicable to confirmed stack — identify any remotely exploitable unpatched vulnerabilities",
+      "supporting_chain": "chain_002",
+      "priority": "medium",
+      "success_criteria": "At least one confirmed CVE match on stack component with exploit path to backend data or auth bypass",
+      "opened_wave": 1,
+      "stickiness": 0.24999999999999992,
+      "status": "open"
+    },
+    {
+      "id": "obj_008",
+      "title": "CSRF Bypass via CORS-Readable csrf-token Cookie",
+      "description": "Confirm CSRF bypass via CORS-readable csrf-token cookie — demonstrate that CORS reads can extract and replay double-submit CSRF token in state-mutating API calls",
+      "supporting_chain": "chain_002",
+      "priority": "medium",
+      "success_criteria": "csrf-token cookie value successfully read via credentialed CORS GET and replayed in POST /rbac or POST /users endpoint — server accepts the request",
+      "opened_wave": 1,
+      "stickiness": 0.24999999999999992,
+      "status": "open"
+    },
+    {
+      "id": "obj_009",
+      "title": "GitHub Leaked Secrets Scan — NEXTAUTH_SECRET, DATABASE_URL, Azure client_secret",
+      "description": "Scan copointdata/copointai GitHub org for leaked secrets that would compromise the entire auth stack — NEXTAUTH_SECRET enables JWT forgery, DATABASE_URL enables direct DB access, Azure client_secret enables managed identity takeover",
+      "supporting_chain": "chain_002_updated",
+      "priority": "critical",
+      "success_criteria": "Any one of: NEXTAUTH_SECRET found, DATABASE_URL found, Azure client_secret found, API key found in public/private GitHub repos for copointdata org",
+      "stickiness": 0.44999999999999996,
+      "opened_wave": 2,
+      "status": "open"
+    },
+    {
+      "id": "obj_010",
+      "title": "OSINT User Enumeration — revops.copointdata.com Employee and User List",
+      "description": "Enumerate real users of revops.copointdata.com via LinkedIn, Apollo, breach databases — needed for CORS chain social engineering delivery demo and OIDC chain victim targeting",
+      "supporting_chain": "chain_002_updated",
+      "priority": "high",
+      "success_criteria": "At least 3 verified employee emails or user accounts for copointdata.com identified from OSINT sources",
+      "stickiness": 0.24999999999999992,
+      "opened_wave": 2,
+      "status": "open"
+    },
+    {
+      "id": "obj_011",
+      "title": "Fingerprint exact Next.js version, NextAuth version, and Express.js version from bundle analysis and HTTP headers — map ",
+      "description": "Fingerprint exact Next.js version, NextAuth version, and Express.js version from bundle analysis and HTTP headers — map against CVE databases for auth-bypass vulnerabilities (CVE-2023-48309, CVE-2024-34351, CVE-2025-29927)",
+      "supporting_chain": "chain_003_updated",
+      "priority": "medium",
+      "success_criteria": "Confirmed CVE match on stack component with exploit path to auth bypass or unauthenticated data access, OR confirmation that stack is patched (allows deprioritizing chain_003 nonce bypass)",
+      "stickiness": 0.24999999999999992,
+      "opened_wave": 2,
+      "status": "open"
+    }
+  ],
+  "frontier": [
+    {
+      "node_id": "n_prod_app",
+      "ev_score": 5,
+      "outgoing_candidates": [],
+      "reason": "high-value node (v=5)"
+    },
+    {
+      "node_id": "n_cors_null_origin",
+      "ev_score": 5,
+      "outgoing_candidates": [
+        "e_cors_to_csrf_bypass",
+        "e_cors_null_to_exfil"
+      ],
+      "reason": "2 outgoing candidate(s)"
+    },
+    {
+      "node_id": "n_expr_back",
+      "ev_score": 4,
+      "outgoing_candidates": [
+        "e_backend_health",
+        "e_backend_pusher",
+        "e_backend_to_cors_misconfig",
+        "e_expr_back_to_graphql"
+      ],
+      "reason": "4 outgoing candidate(s)"
+    },
+    {
+      "node_id": "n_auth_next",
+      "ev_score": 3,
+      "outgoing_candidates": [
+        "e_auth_requires_backend",
+        "e_test_edge",
+        "e_auth_to_oidc_bypass",
+        "e_auth_to_bundle_secrets"
+      ],
+      "reason": "4 outgoing candidate(s)"
+    },
+    {
+      "node_id": "n_health_ep",
+      "ev_score": 2,
+      "outgoing_candidates": [
+        "e_health_to_unauth_routes"
+      ],
+      "reason": "1 outgoing candidate(s)"
+    },
+    {
+      "node_id": "n_0e02b4d2",
+      "ev_score": 1,
+      "outgoing_candidates": [
+        "e_seed_to_auth",
+        "e_seed_to_backend",
+        "e_seed_to_pay",
+        "e_seed_to_accel"
+      ],
+      "reason": "4 outgoing candidate(s)"
+    }
+  ],
+  "exploited_chains": []
+}

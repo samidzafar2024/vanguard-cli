@@ -1,0 +1,25 @@
+[
+  {
+    "id": "f_id0r0001",
+    "wave": 4, "agent": "idor-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0009",
+    "type": "idor",
+    "target": {"url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/users/{id}/role", "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io", "path": "/rbac/users/{id}/role", "param": "id"},
+    "title": "RBAC IDOR candidate: /rbac/users/{id}/role — uniform 401, requires auth to confirm",
+    "description": "All RBAC user/role endpoints return uniform 401 unauthenticated with no response differentiation. IDOR exploitability cannot be confirmed without an authenticated session. Post-auth testing required via chain_002 CORS exploit.",
+    "severity": "info",
+    "confidence": 0.5,
+    "evidence": {"type": "http_response", "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/users/1/role", "snippet": "[see evidence_quarantined]", "artifact_path": null},
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["idor", "rbac", "needs-auth"],
+    "deduplication_key": "idor-vuln:livelystone-c1480484:rbac_uniform_401",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "idor-vuln wave 4",
+    "evidence_safe": "All /rbac/users/{id}/role and /rbac/roles/{id} endpoints return 401 uniformly for IDs 1-999999 and UUIDs — no unauthenticated IDOR signal",
+    "evidence_quarantined": null
+  }
+]

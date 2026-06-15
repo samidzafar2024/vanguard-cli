@@ -1,0 +1,51 @@
+#!/usr/bin/env node
+// Claude Code Statusline - adapted from GSD
+// Shows: model | directory | context usage bar
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+let input = '';
+const stdinTimeout = setTimeout(() => process.exit(0), 3000);
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', chunk => input += chunk);
+process.stdin.on('end', () => {
+  clearTimeout(stdinTimeout);
+  try {
+    const data = JSON.parse(input);
+    const model = data.model?.display_name || 'Claude';
+    const dir = data.workspace?.current_dir || process.cwd();
+    const remaining = data.context_window?.remaining_percentage;
+    // Context window display (shows USED percentage scaled to usable context)
+    // Claude Code reserves ~16.5% for autocompact buffer, so usable context
+    // is 83.5% of the total window. We normalize to show 100% at that point.
+    const AUTO_COMPACT_BUFFER_PCT = 16.5;
+    let ctx = '';
+    if (remaining != null) {
+      const usableRemaining = Math.max(0, ((remaining - AUTO_COMPACT_BUFFER_PCT) / (100 - AUTO_COMPACT_BUFFER_PCT)) * 100);
+      const used = Math.max(0, Math.min(100, Math.round(100 - usableRemaining)));
+
+      // Build progress bar (10 segments)
+      const filled = Math.floor(used / 10);
+      const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(10 - filled);
+
+      // Color based on usable context thresholds
+      if (used < 50) {
+        ctx = ` \x1b[32m${bar} ${used}%\x1b[0m`;
+      } else if (used < 65) {
+        ctx = ` \x1b[33m${bar} ${used}%\x1b[0m`;
+      } else if (used < 80) {
+        ctx = ` \x1b[38;5;208m${bar} ${used}%\x1b[0m`;
+      } else {
+        ctx = ` \x1b[5;31m\u{1F480} ${bar} ${used}%\x1b[0m`;
+      }
+    }
+
+    // Output
+    const dirname = path.basename(dir);
+    process.stdout.write(`\x1b[2m${model}\x1b[0m \u2502 \x1b[2m${dirname}\x1b[0m${ctx}`);
+  } catch (e) {
+    // Silent fail
+  }
+});

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//private/tmp/**)",
+      "Bash(curl -s \"https://api.github.com/repos/KeygraphHQ/shannon\")",
+      "Bash(unzip -q shannon-main.zip)",
+      "WebFetch(domain:www.amazon.jobs)",
+      "WebFetch(domain:www.google.com)",
+      "WebFetch(domain:services.google.com)",
+      "WebFetch(domain:portswigger.net)",
+      "Bash(uv tool *)",
+      "Bash(pip install *)",
+      "Bash(python3 -m pip install graphifyy)",
+      "Bash(graphify install *)",
+      "Bash(open \"/Users/samidzafar/Desktop/PROJECT CODES/samid/personal/vanguard-cli/graphify-out/graph.html\")",
+      "Bash(node_modules/.bin/tsdown)",
+      "Read(//Users/samidzafar/**)"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true
+}

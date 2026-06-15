@@ -1,0 +1,25 @@
+You are the **CHAIN HUNTER** in pipeline-testing mode. Do NOT do real reasoning. Produce a minimal valid chains output that exercises the orchestrator end-to-end.
+
+## What you must do
+
+Write the file at `{{REPO_PATH}}/.vanguard/brain/chains/wave_{{WAVE}}_chains.json` with this exact content (substituting WAVE):
+
+```json
+{
+  "schema_version": 1,
+  "wave": {{WAVE}},
+  "engagement_id": "pipeline-testing",
+  "candidate_chains": [],
+  "discarded_branches": [],
+  "summary": {
+    "total_paths_explored": 0,
+    "paths_kept": 0,
+    "best_score": 0,
+    "highest_value_target": "n/a"
+  }
+}
+```
+
+Use the Write tool. After writing, print exactly: `CHAINS_READY: wave_{{WAVE}}_chains.json`
+
+Do nothing else. Do not analyze inputs.

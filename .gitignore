@@ -6,3 +6,5 @@ dist/
 .DS_Store
 coverage/
 .vanguard/memory/items/
+.vanguard/scratchpad/
+.vanguard/deliverables/

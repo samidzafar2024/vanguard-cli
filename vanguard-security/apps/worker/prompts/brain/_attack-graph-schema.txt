@@ -1,0 +1,243 @@
+# ATTACK GRAPH SCHEMA
+
+Persistent state across all waves. Single source of truth for the brain. Lives at `.vanguard/brain/graph.json` in the target repo.
+
+The graph models the attack surface as a directed multigraph: nodes are **states** (assets, capabilities, accesses), edges are **transitions** (exploitation steps that move between states).
+
+This follows MulVAL (Ou et al., USENIX Sec 2005) and Bayesian attack graph (Poolsappasit et al., IEEE TDSC 2012) formalisms.
+
+---
+
+## Top-level structure
+
+```json
+{
+  "version": 1,
+  "engagement_id": "<session_id>",
+  "target": {
+    "url": "https://app.example.com",
+    "host": "app.example.com",
+    "scope_hosts": ["app.example.com", "api.example.com"]
+  },
+  "created_at": "2026-04-25T12:00:00Z",
+  "updated_at": "2026-04-25T13:30:00Z",
+  "wave": 5,
+  "nodes": { ... },
+  "edges": [ ... ],
+  "objectives": [ ... ],
+  "frontier": [ ... ],
+  "exploited_chains": [ ... ]
+}
+```
+
+---
+
+## Node Schema
+
+```json
+{
+  "id": "n_<8-char-hash>",
+  "kind": "asset | capability | access | data",
+  "label": "human-readable",
+  "value": 7.5,
+  "ptes_phase": "intelligence-gathering",
+  "attack_tactic": "TA0001",
+  "attributes": {
+    "host": "...",
+    "path": "...",
+    "tech": "...",
+    ...
+  },
+  "evidence_findings": ["f_abc12345", "f_def67890"],
+  "first_seen_wave": 1,
+  "confirmed": true
+}
+```
+
+### Node kinds
+
+| Kind | Meaning | Examples |
+|---|---|---|
+| `asset` | discovered surface | endpoint, subdomain, port, repo, S3 bucket |
+| `capability` | something exploitable | SQLi sink, IDOR param, SSRF entrypoint |
+| `access` | level of access achieved | unauthenticated, user-X-session, admin-session |
+| `data` | sensitive data reachable | DB row, IAM creds, source code, user PII |
+
+### Node `value` (target value, [1, 10])
+
+Used to prioritize chains. Higher = more valuable target state.
+
+| Value | State |
+|---|---|
+| 10 | full RCE on production |
+| 9 | admin session / leaked admin creds |
+| 8 | DB read+write, IAM creds |
+| 7 | DB read, source code disclosure |
+| 6 | cross-tenant data access |
+| 5 | authenticated user session |
+| 4 | individual user data leak (one user) |
+| 3 | username enumeration, internal endpoints |
+| 2 | tech stack disclosure |
+| 1 | open port, version banner |
+
+---
+
+## Edge Schema
+
+```json
+{
+  "id": "e_<8-char-hash>",
+  "from_node": "n_abc12345",
+  "to_node": "n_def67890",
+  "label": "exploits via leaked AWS key",
+  "attack_technique": "T1078.004",
+  "likelihood": 0.85,
+  "cost": 2,
+  "exploit_agent": "exploit-cloud",
+  "exploit_directive_hint": {
+    "credential_ref": "f_keyleak001",
+    "target_resource": "s3://prod-backups"
+  },
+  "evidence_findings": ["f_keyleak001"],
+  "status": "candidate | confirmed | refuted | exploited",
+  "confirmed_at_wave": null,
+  "exploited_at_wave": null,
+  "exploit_artifact": null
+}
+```
+
+### Edge `likelihood` ([0.0, 1.0])
+
+P(exploitation succeeds | both endpoints exist + prerequisites met). Calibrated by:
+- evidence quality of source node
+- specificity of capability
+- presence of working PoC heuristics
+- known CVE/exploit code
+
+Default priors:
+- `confirmed_finding → direct_grant`: 0.85-0.95
+- `candidate_finding → grant`: 0.40-0.70
+- `chain heuristic match`: 0.30-0.55
+- `speculative`: <0.30 (don't add edge)
+
+### Edge `status` lifecycle
+
+```
+candidate → confirmed → exploited
+         ↘ refuted (dead end, kept for negative evidence)
+```
+
+Status transitions are append-only; never delete edges. `refuted` edges remain so the brain doesn't re-propose them.
+
+---
+
+## Objective Schema
+
+Open hypotheses the brain is actively pursuing. Carries across waves with stickiness.
+
+```json
+{
+  "id": "obj_<6-char>",
+  "title": "Confirm chain: GitHub leak → AWS → S3 dump",
+  "target_node": "n_def67890",
+  "candidate_chain": ["n_a", "n_b", "n_c", "n_def67890"],
+  "expected_value": 6.8,
+  "opened_wave": 4,
+  "stickiness": 1.0,
+  "status": "open | completed | abandoned",
+  "abandon_reason": null,
+  "lessons_acquired": []
+}
+```
+
+`stickiness` decays 0.15 per wave the objective stays open without progress. When stickiness < 0.3 the brain may abandon; otherwise must carry forward.
+
+---
+
+## Frontier
+
+```json
+{
+  "frontier": [
+    {
+      "node_id": "n_abc12345",
+      "ev_score": 6.8,
+      "outgoing_candidates": ["e_xyz", "e_pqr"],
+      "reason": "confirmed leaked credential, 2 exploit paths"
+    }
+  ]
+}
+```
+
+`frontier` = nodes from which new exploitation is currently viable (have unconfirmed/candidate outgoing edges with positive EV). The Planner reads frontier to decide next directives.
+
+---
+
+## Exploited chain history
+
+```json
+{
+  "exploited_chains": [
+    {
+      "id": "chain_001",
+      "wave": 6,
+      "path": ["n_seed", "n_leak", "n_aws", "n_s3", "n_dbdump"],
+      "edges": ["e_1", "e_2", "e_3", "e_4"],
+      "compromise_severity": "critical",
+      "narrative": "Public GitHub leak → AWS keys → S3 prod-backups → DB dump → 1.2M user records",
+      "evidence_artifacts": ["..."]
+    }
+  ]
+}
+```
+
+Used by Wave 7 (report) as first-class output: chains, not just isolated findings.
+
+---
+
+## Trust Tiers
+
+Every finding and node carries a `trust_tier` that controls how its evidence may be used in LLM context.
+
+| Tier | When to use | LLM context handling |
+|---|---|---|
+| `trusted` | Evidence generated by the agent directly (tool output, code analysis, deterministic scanner) | Embed verbatim |
+| `derived` | Evidence inferred from trusted sources (correlation, deduction, chain reasoning) | Embed verbatim |
+| `untrusted` | Evidence that crossed a trust boundary: HTTP responses, external file content, user-supplied data | Pass through quarantine pipeline first; embed only `evidence_safe` and `evidence_quarantined.wrapped_content` |
+
+### Handling `untrusted` evidence
+
+Before adding an `untrusted` finding to the graph or referencing its evidence in an LLM prompt:
+
+1. Run evidence through `quarantine digest` (4-stage sanitize → classify → validate → wrap)
+2. Store the QuarantineResult in `evidence_quarantined`
+3. Store a human-readable summary (≤200 chars, no raw values) in `evidence_safe`
+4. Never embed `evidence.snippet` from an untrusted finding directly — use `evidence_safe` instead
+
+If `evidence_quarantined.status === 'suspicious'` or `'quarantine_failed'`, reduce finding confidence by 0.2 and add tag `quarantine_warning`.
+
+---
+
+## Mutation rules (enforced by orchestrator, not LLM)
+
+1. **Provenance required**: every `add_node` and `add_edge` MUST cite `evidence_findings` with valid `f_*` IDs.
+2. **No node deletion**: refuted nodes are marked `confirmed: false`, not deleted.
+3. **No edge deletion**: status transitions only.
+4. **Idempotent**: re-applying the same mutation is a no-op (use `id` for dedup).
+5. **Atomic**: a mutation batch either fully applies or fully rejects (validated against this schema).
+
+The brain proposes mutations as JSON; the orchestrator validates and commits. The brain never writes `graph.json` directly.
+
+---
+
+## Subgraph retrieval (anti-context-bloat)
+
+When the brain runs, it does NOT see the full graph. It sees:
+
+1. **k-hop neighborhood** (k=2) around current frontier nodes
+2. **Top-N findings by recency** (N=20, last wave + current)
+3. **All open objectives**
+4. **Last wave's lessons** (Critic output)
+5. **Top 5 chain patterns matched by tag**
+
+This keeps each brain invocation under ~30K tokens regardless of engagement size.

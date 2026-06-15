@@ -1,0 +1,3 @@
+@include(shared/_filesystem.txt)
+
+Run: `save-deliverable --type XSS_ANALYSIS --content 'vuln-xss complete'`. Then say "Done".

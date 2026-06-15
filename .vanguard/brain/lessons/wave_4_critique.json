@@ -1,0 +1,103 @@
+{
+  "critique_version": 1,
+  "wave": 4,
+  "generated_at": "2026-05-01T14:45:00.000Z",
+  "agent": "hpc-ag-brain",
+  "stage": "critic",
+  "overall_assessment": {
+    "grade": "B+",
+    "signal_yield": "high",
+    "noise_ratio": "low",
+    "summary": "Wave 4 was highly productive despite most endpoints returning 401. The 401-vs-404 differential was the key insight: routes exist and process input, they just require auth. The critical CORS misconfiguration confirmed in Wave 4 (backend reflects arbitrary origin + credentials=true) is the master key — everything else in Wave 5 flows from exploiting it first."
+  },
+  "confirmed_vulnerabilities": [
+    {
+      "id": "f_a1b2c3d4",
+      "finding": "CORS arbitrary origin reflection with credentials",
+      "severity": "critical",
+      "confidence": 0.98,
+      "wave_5_value": "This is the primary attack primitive. All other Wave 5 exploits are gated on auth. This CORS flaw allows an attacker page to read authenticated API responses cross-origin, effectively stealing the session. Must execute first."
+    },
+    {
+      "id": "f_e5f6a7b8",
+      "finding": "OIDC nonce absent from Azure AD auth flow",
+      "severity": "high",
+      "confidence": 0.92,
+      "wave_5_value": "ID token replay is theoretically exploitable but requires attacker to obtain a valid ID token from another app in the same Azure AD tenant. Complex prerequisite — lower priority than CORS chain."
+    },
+    {
+      "id": "f_4a1b9c2e",
+      "finding": "11 SSRF candidate endpoints confirmed (401 differential)",
+      "severity": "high",
+      "confidence": 0.75,
+      "wave_5_value": "Post-auth SSRF to Azure IMDS is the highest-value lateral move. Needs session from CORS exploit first."
+    },
+    {
+      "id": "f_4b7d3f8a",
+      "finding": "Full CORS→SSRF→IMDS exploit chain confirmed",
+      "severity": "critical",
+      "confidence": 0.80,
+      "wave_5_value": "End-to-end chain from unauthenticated attacker to Azure managed identity token. This is the primary objective for Wave 5."
+    }
+  ],
+  "non_findings_analysis": [
+    {
+      "area": "IDOR unauthenticated",
+      "result": "uniform 401",
+      "interpretation": "RBAC IDOR not testable without auth. Not a dead end — needs session from chain_002."
+    },
+    {
+      "area": "authz / method override / GraphQL introspection",
+      "result": "blocked by global auth middleware",
+      "interpretation": "Auth middleware is comprehensive. No bypass found. Post-auth testing still needed."
+    },
+    {
+      "area": "injection probes",
+      "result": "all 401",
+      "interpretation": "SQL/NoSQL injection not testable unauthenticated. Search/filter params need authenticated session."
+    },
+    {
+      "area": "WebSocket / Pusher auth",
+      "result": "403",
+      "interpretation": "Properly gated. Post-auth Pusher channel enumeration still possible with valid session."
+    },
+    {
+      "area": "XSS",
+      "result": "no XSS found, Vercel bot protection active",
+      "interpretation": "Low value to pursue. Vercel bot protection suppresses scanner. Deprioritize in Wave 5."
+    }
+  ],
+  "lessons": [
+    {
+      "id": "lesson_w4_001",
+      "lesson": "401 is not 404 — route existence confirmation via HTTP status differential is a valid signal for post-auth planning.",
+      "applies_to": ["ssrf-vuln", "idor-vuln", "injection-vuln", "authz-vuln"],
+      "action": "In Wave 5, revisit all 401 endpoints with an authenticated session from chain_002."
+    },
+    {
+      "id": "lesson_w4_002",
+      "lesson": "CORS misconfiguration with credentials is the master key for this engagement. It unlocks all post-auth attack paths without needing a real account.",
+      "applies_to": ["auth-exploit", "ssrf-exploit", "idor-exploit", "authz-exploit", "injection-exploit"],
+      "action": "Wave 5 MUST dispatch auth-exploit first. All other agents should wait for or use the session hint from auth-exploit."
+    },
+    {
+      "id": "lesson_w4_003",
+      "lesson": "Vercel bot protection makes XSS scanning unreliable from automated scanners. Diminishing returns — manual or deferred to manual testing phase.",
+      "applies_to": ["xss-exploit"],
+      "action": "Deprioritize xss-exploit in Wave 5. If write endpoints are found post-auth by other agents, flag for manual XSS follow-up."
+    },
+    {
+      "id": "lesson_w4_004",
+      "lesson": "Backend and frontend are separate hosts. The backend (livelystone-c1480484.westus2.azurecontainerapps.io) has the CORS flaw, not the Vercel frontend. Exploits must target the backend host directly.",
+      "applies_to": ["auth-exploit", "ssrf-exploit"],
+      "action": "auth-exploit PoC HTML must target backend host: revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io"
+    },
+    {
+      "id": "lesson_w4_005",
+      "lesson": "OIDC nonce absence is confirmed but exploitation requires complex tenant-level prerequisites. Chain with CORS exploit for stronger auth bypass path.",
+      "applies_to": ["auth-exploit"],
+      "action": "auth-exploit should lead with CORS null-origin PoC; OIDC nonce replay is a secondary path if CORS PoC yields a token."
+    }
+  ],
+  "wave_5_strategic_directive": "Wave 5 must lead with auth-exploit executing chain_002 (CORS null-origin). The PoC HTML should use a sandboxed null-origin iframe to make a credentialed fetch to /auth/me on the backend host and exfiltrate the response. Once a session token is obtained, all other Wave 5 agents (ssrf-exploit, idor-exploit, authz-exploit, injection-exploit, websocket-exploit) should execute in parallel using that session. xss-exploit is deprioritized."
+}

@@ -1,0 +1,7 @@
+@include(shared/_filesystem.txt)
+
+Run these two commands in order:
+1. `save-deliverable --type IDOR_ANALYSIS --content 'vuln-idor complete'`
+2. `bash -c 'echo '"'"'{"vulnerabilities":[]}'"'"' > {{REPO_PATH}}/.vanguard/deliverables/idor_exploitation_queue.json'`
+
+Then say "Done".

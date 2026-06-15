@@ -1,0 +1,68 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ts-node --compiler-options '{\"module\":\"commonjs\"}' -e ':*)",
+      "Bash(git log:*)",
+      "Bash(npx tsx -e ':*)",
+      "Bash(npx eslint:*)",
+      "Bash(gh repo *)",
+      "Bash(claude --version)",
+      "Bash(claude plugin *)",
+      "Read(//home/vscode/.claude/**)",
+      "Bash(mkdir -p ~/.claude/plugins/cache/neonwatty-qa/qa-skills/unknown)",
+      "Bash(cp -r ~/.claude/plugins/marketplaces/neonwatty-qa/. ~/.claude/plugins/cache/neonwatty-qa/qa-skills/unknown/)",
+      "Bash(npm install *)",
+      "Bash(playwright-cli install *)",
+      "Bash(playwright-cli -s=qa-smoke goto \"http://localhost:4000/hr/data-upload\")",
+      "Bash(playwright-cli -s=qa-smoke goto \"http://localhost:4000/hr/review-cycles/1/details\")",
+      "Bash(playwright-cli -s=qa-smoke goto \"http://localhost:4000/hr/review-cycles/1/edit\")",
+      "Bash(xargs cat *)",
+      "Read(//workspaces/bonuscompplatform/bcp-web/**)",
+      "Read(//workspaces/bonuscompplatform/**)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/memory-protocol.sh track",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/memory-protocol.sh phase",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/memory-protocol.sh check",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/statusline.sh",
+    "padding": 2
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  }
+}

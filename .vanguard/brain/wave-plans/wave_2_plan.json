@@ -1,0 +1,185 @@
+{
+  "wave": 2,
+  "plan_timestamp": "2026-05-01T12:30:00Z",
+  "stop_loop": false,
+  "summary": "Wave 2 escalates from confirmed CORS-with-credentials and OIDC nonce absence into active exploitation attempts: nuclei-scan provides creds-CORS PoC confirmation and CVE-based infrastructure scanning, while cloud-vuln probes Azure Container Apps managed identity (IMDS), Azure AD tenant configuration, and OIDC nonce enforcement. The CORS null-origin chain (chain_002) is the highest-priority attack path requiring only a willing victim browser, with no XSS prerequisite.",
+  "objectives": [
+    {
+      "id": "obj_004",
+      "description": "Confirm null-origin sandboxed iframe CORS exploit delivers credentialed responses from /auth/me and /rbac/me/permissions — establish live PoC for chain_002",
+      "supporting_chain": "chain_002",
+      "priority": "critical",
+      "success_criteria": "HTTP 200 response to /auth/me with user data returned via credentialed CORS request from sandboxed iframe or attacker origin — PoC artifact captured"
+    },
+    {
+      "id": "obj_005",
+      "description": "Determine if Azure Container App has managed identity assigned and if IMDS endpoint is reachable — assess lateral movement potential via managed identity token theft",
+      "supporting_chain": "chain_006",
+      "priority": "high",
+      "success_criteria": "IMDS endpoint response OR confirmation of managed identity scope in Azure AD — any Azure resource access token obtained via metadata endpoint"
+    },
+    {
+      "id": "obj_006",
+      "description": "Test Azure AD OIDC nonce enforcement in NextAuth — attempt id_token with absent or mismatched nonce claim and observe whether session is created",
+      "supporting_chain": "chain_003",
+      "priority": "high",
+      "success_criteria": "NextAuth /api/auth/callback/azure-ad accepts replayed id_token with modified claims OR returns error message confirming nonce is NOT validated"
+    },
+    {
+      "id": "obj_007",
+      "description": "Enumerate CVEs applicable to confirmed stack: PostgreSQL 17.8, Express.js on Azure Container Apps, Next.js 16.1.6 — identify any remotely exploitable unpatched vulnerabilities",
+      "supporting_chain": "chain_002",
+      "priority": "medium",
+      "success_criteria": "At least one confirmed CVE match on stack component with exploit path to backend data or auth bypass"
+    },
+    {
+      "id": "obj_008",
+      "description": "Confirm CSRF bypass via CORS-readable csrf-token cookie — demonstrate that an attacker performing CORS reads can extract the double-submit CSRF token and replay it in state-mutating API calls",
+      "supporting_chain": "chain_002",
+      "priority": "medium",
+      "success_criteria": "csrf-token cookie value successfully read via credentialed CORS GET and replayed in POST /rbac or POST /users endpoint — server accepts the request"
+    }
+  ],
+  "directives": [
+    {
+      "agent": "nuclei-scan",
+      "priority": "critical",
+      "hints": {
+        "objective_id": "obj_004",
+        "supports_chain_pattern": "chain_002",
+        "focus_resources": [
+          "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/",
+          "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/auth/me",
+          "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/rbac/me/permissions",
+          "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+          "https://revops-dev.vercel.app/api/health",
+          "https://revops-dev.vercel.app/"
+        ],
+        "template_categories": [
+          "misconfiguration/cors",
+          "misconfiguration/http-headers",
+          "exposures/configs",
+          "cves/postgresql",
+          "cves/nextjs",
+          "cves/express",
+          "exposures/tokens",
+          "exposures/apis"
+        ],
+        "success_signals": [
+          "CORS null-origin reflected with credentials:true confirmed by nuclei template",
+          "Any XSS template match on Vercel frontend (even low-confidence)",
+          "CVE match on PostgreSQL 17.8 or Express.js version",
+          "Unauthenticated endpoint discovered beyond /health on backend",
+          "Datadog client token or RUM app ID confirmed as live credential"
+        ],
+        "expected_outcome": "Nuclei confirms CORS misconfiguration with credentials via dedicated creds-CORS template; identifies any CVEs on PostgreSQL 17.8 / Next.js 16.1.6; discovers additional unauthenticated endpoints; generates CORS PoC evidence artifact"
+      }
+    },
+    {
+      "agent": "cloud-vuln",
+      "priority": "high",
+      "hints": {
+        "objective_id": "obj_005",
+        "supports_chain_pattern": "chain_006",
+        "focus_resources": [
+          "Azure Container Apps environment: livelystone-c1480484.westus2.azurecontainerapps.io",
+          "Azure AD tenant: extract from /api/auth/providers issuer URL",
+          "IMDS endpoint: http://169.254.169.254/metadata/instance (probe from SSRF vectors)",
+          "Azure AD OpenID Connect well-known: https://login.microsoftonline.com/{tenantId}/v2.0/.well-known/openid-configuration",
+          "https://revops-dev.vercel.app/api/auth/providers"
+        ],
+        "focus_areas": [
+          "Azure Container Apps managed identity detection — check if IMDS is reachable via any SSRF vector in the Express API",
+          "Azure AD tenant enumeration — extract tenant ID from providers endpoint, check multi-tenancy, enumerate app registration permissions",
+          "OIDC nonce validation test — initiate Azure AD auth flow, inspect nonce parameter in authorization_endpoint request, test id_token replay",
+          "Azure AD app registration scope — determine if the registered app has Graph API permissions beyond authentication",
+          "Sibling Container App enumeration — probe other apps in livelystone-c1480484 environment namespace"
+        ],
+        "success_signals": [
+          "IMDS endpoint accessible (returns instance metadata or managed identity token)",
+          "Azure AD tenant is multi-tenant (allows attacker-controlled AD accounts)",
+          "Nonce parameter absent from authorization request OR not validated in callback",
+          "App registration has excessive Microsoft Graph API permissions",
+          "Sibling Container Apps discovered with weaker security configurations"
+        ],
+        "expected_outcome": "Azure AD misconfig (nonce bypass, multi-tenancy, excessive scopes) confirmed for chain_003; managed identity IMDS access confirmed or ruled out for chain_006; sibling app enumeration adds new attack surface nodes to graph"
+      }
+    },
+    {
+      "agent": "container-vuln",
+      "priority": "medium",
+      "hints": {
+        "objective_id": "obj_005",
+        "supports_chain_pattern": "chain_006",
+        "focus_resources": [
+          "Azure Container Apps runtime: revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "Container environment variables (if any exposure vectors found)",
+          "SSRF vectors in Express API routes that could reach internal network"
+        ],
+        "focus_areas": [
+          "Probe for SSRF sinks in Express API that could be used to reach 169.254.169.254",
+          "Check for container escape signals: privileged mode, host mount indicators in response headers",
+          "Enumerate environment variable exposure in error messages or debug endpoints",
+          "Check /.env, /proc/version, /proc/self/environ via path traversal in any file-serving routes"
+        ],
+        "conditional": "Escalate to HIGH priority if cloud-vuln confirms managed identity is assigned to the container — IMDS pivot becomes critical path",
+        "expected_outcome": "SSRF vectors identified that could reach IMDS; or container escape signals found; or environment variable leakage confirmed — deprioritize if none found within first 30 endpoints"
+      }
+    },
+    {
+      "agent": "ssl-tls-vuln",
+      "priority": "low",
+      "hints": {
+        "focus_resources": [
+          "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "https://revops-dev.vercel.app"
+        ],
+        "expected_outcome": "Quick TLS scan to confirm no weak cipher suites, TLS 1.0/1.1, or certificate issues. Expected clean — Vercel and Azure Container Apps enforce modern TLS. Run fast and deprioritize if clean."
+      }
+    }
+  ],
+  "deprioritize": [
+    {
+      "agent": "ssl-tls-vuln",
+      "reason": "Both Vercel and Azure Container Apps are managed TLS infrastructure with automatic certificate management and modern cipher enforcement. TLS weaknesses are extremely unlikely. Run quickly for completeness but allocate minimal compute — no chains depend on TLS findings."
+    }
+  ],
+  "chain_priorities": [
+    {
+      "chain_id": "chain_002",
+      "ev": 0.97,
+      "status": "ACTIVE — CRITICAL",
+      "note": "Null-origin CORS with credentials is confirmed on all routes. No XSS required. This is an independent exploit path — any victim who can be socially engineered to visit an attacker page has their full backend API access compromised. Nuclei creds-CORS template should generate PoC artifact."
+    },
+    {
+      "chain_id": "chain_003",
+      "ev": 0.76,
+      "status": "ACTIVE — HIGH",
+      "note": "OIDC nonce absence confirmed client-side. Active Azure AD flow test needed. cloud-vuln should execute this as primary test."
+    },
+    {
+      "chain_id": "chain_004",
+      "ev": 0.72,
+      "status": "ACTIVE — HIGH",
+      "note": "RBAC IDOR requires authenticated session. Blocked until any credentials obtained. Should be wave 3 focus after obtaining session from chain_002 or chain_003."
+    },
+    {
+      "chain_id": "chain_005",
+      "ev": 0.58,
+      "status": "ACTIVE — MEDIUM",
+      "note": "GraphQL introspection requires authenticated session. Deferred to wave 3. nuclei-scan should probe for graphql introspection with any test token."
+    },
+    {
+      "chain_id": "chain_006",
+      "ev": 0.47,
+      "status": "ACTIVE — MEDIUM",
+      "note": "IMDS lateral movement requires SSRF or RCE. cloud-vuln + container-vuln should assess feasibility."
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [],
+    "add_edges": [],
+    "update_nodes": [],
+    "update_edges": []
+  }
+}

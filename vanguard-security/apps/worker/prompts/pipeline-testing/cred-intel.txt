@@ -1,0 +1,3 @@
+@include(shared/_filesystem.txt)
+
+Run: `save-deliverable --type CRED_INTEL --content 'Credential intelligence complete'`. Then say "Done".

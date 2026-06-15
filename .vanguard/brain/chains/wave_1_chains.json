@@ -1,0 +1,239 @@
+{
+  "wave": 1,
+  "chains_identified": [
+    {
+      "id": "chain_002",
+      "pattern_id": "cors_wildcard_credentials_to_full_api_exfil",
+      "name": "Null-Origin CORS + Sandboxed Iframe → Full Credentialed API Exfiltration (No XSS Required)",
+      "steps": [
+        "Host attacker page on any domain (no XSS required — null-origin path)",
+        "Attacker page creates sandboxed iframe with srcdoc attribute containing fetch() calls to backend",
+        "Browser sends Origin: null for requests from sandboxed iframe",
+        "Backend reflects 'Access-Control-Allow-Origin: null' + 'Access-Control-Allow-Credentials: true'",
+        "Fetch requests carry victim's session cookies (credentials:include) — CORS allows them",
+        "Attacker reads /auth/me → get user identity + JWT token",
+        "Enumerate /rbac/me/permissions → get full permission set",
+        "Exfiltrate /users, /accounts, /contacts, /deals, /connect-points — full CRM data",
+        "Use non-HttpOnly csrf-token cookie (readable via CORS GET) to forge POST/PUT/PATCH requests",
+        "Full read/write access to all backend API routes as the victim"
+      ],
+      "current_evidence": [
+        "f_a1b2c3d4",
+        "f_a3c9e1f2",
+        "f_cors0001",
+        "f_cors0002",
+        "f_cors0003",
+        "f_c2f85b3d"
+      ],
+      "missing_evidence": [
+        "Live PoC confirming null-origin sandboxed iframe carries victim cookies in cross-origin fetch",
+        "Confirmation that victim session cookies are SameSite=None or SameSite=Lax (required for cross-site CORS delivery)",
+        "Evidence that /auth/me returns user data when called with valid session cookie via CORS"
+      ],
+      "expected_value": 0.97,
+      "recommended_agents": ["nuclei-scan", "cloud-vuln"],
+      "node_ids": [
+        "n_cors_null_origin",
+        "n_csrf_cors_bypass",
+        "n_expr_back",
+        "n_unauth_api_routes",
+        "n_prod_app"
+      ]
+    },
+    {
+      "id": "chain_003",
+      "pattern_id": "oidc_nonce_absent_to_account_takeover",
+      "name": "Azure AD OIDC Nonce Absent → id_token Replay → Account Takeover",
+      "steps": [
+        "Initiate Azure AD OAuth2 OIDC flow via /api/auth/signin/azure-ad",
+        "Complete authentication with attacker-controlled Azure AD account in same tenant",
+        "Capture id_token JWT from Azure AD (attacker owns this token legitimately)",
+        "Modify 'sub', 'email', and 'preferred_username' claims in id_token payload",
+        "Re-sign JWT if NEXTAUTH_SECRET is weak or reuse unsigned token if nonce not validated",
+        "If nonce claim is absent in id_token verification — submit modified id_token to /api/auth/callback/azure-ad",
+        "NextAuth creates session for the victim user whose email was substituted",
+        "Full account takeover — attacker is now authenticated as victim user"
+      ],
+      "current_evidence": [
+        "f_b7d42a8c",
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ],
+      "missing_evidence": [
+        "Active Azure AD OAuth flow to confirm nonce parameter is absent from authorization request",
+        "Capture and decode id_token to confirm nonce claim is missing from token",
+        "Test if NextAuth /api/auth/callback/azure-ad validates nonce before creating session",
+        "Determine NEXTAUTH_SECRET length/entropy — weak secret enables JWT forgery",
+        "Confirm whether Azure AD tenant is single-org or multi-tenant (multi-tenant widens attacker surface)"
+      ],
+      "expected_value": 0.76,
+      "recommended_agents": ["cloud-vuln", "nuclei-scan"],
+      "node_ids": [
+        "n_auth_next",
+        "n_oauth_cb",
+        "n_oidc_state_bypass",
+        "n_prod_app"
+      ]
+    },
+    {
+      "id": "chain_004",
+      "pattern_id": "rbac_idor_to_privilege_escalation",
+      "name": "Authenticated User → IDOR on /rbac/users/{id}/role → Self-Escalation to Admin",
+      "steps": [
+        "Authenticate as any low-privilege user (required: valid Azure AD account in tenant)",
+        "GET /rbac/roles → enumerate available role IDs (roles list endpoint confirmed to exist)",
+        "GET /rbac/me/permissions → confirm current user's role and permission scope",
+        "PUT /rbac/users/{own_user_id}/role with body {role_id: <admin_role_id>}",
+        "If server does not check that requesting user cannot modify own role → privilege escalation",
+        "Alternatively: GET /rbac/roles/user-assignments → discover other user IDs",
+        "PUT /rbac/users/{other_user_id}/role with admin role ID → escalate another account",
+        "Result: admin access to full CRM, user management, org settings, billing"
+      ],
+      "current_evidence": [
+        "f_g8c47e5b",
+        "f_d9e17c4b"
+      ],
+      "missing_evidence": [
+        "Authenticated session token (any valid user) to test RBAC endpoints",
+        "Confirmed role IDs from GET /rbac/roles response",
+        "Server response to PUT /rbac/users/{self_id}/role with admin role ID",
+        "Confirmation that /users/{id}/access PATCH is also missing server-side auth checks"
+      ],
+      "expected_value": 0.72,
+      "recommended_agents": ["nuclei-scan"],
+      "node_ids": [
+        "n_rbac_idor",
+        "n_unauth_api_routes",
+        "n_prod_app"
+      ]
+    },
+    {
+      "id": "chain_005",
+      "pattern_id": "graphql_introspection_to_privilege_escalation",
+      "name": "Authenticated → GraphQL Introspection → Schema Discovery → Privileged Mutation",
+      "steps": [
+        "Obtain any authenticated session (required: valid Azure AD account)",
+        "POST /graphql with introspection query: {__schema{types{name,fields{name,type{name}}}}}",
+        "Map full GraphQL schema — identify all queries and mutations",
+        "Identify high-value mutations: role assignment, user deletion, org config, billing ops",
+        "Attempt mutations with own session — check if authorization is enforced per-mutation",
+        "If GraphQL lacks field-level authorization → execute privileged mutations as low-privilege user",
+        "Escalate to admin or exfiltrate data not accessible via REST API layer"
+      ],
+      "current_evidence": [
+        "f_api00001",
+        "f_api00002"
+      ],
+      "missing_evidence": [
+        "Authenticated session token to reach /graphql endpoint (auth-gated)",
+        "Introspection query response (schema currently unknown)",
+        "Presence of mutations in schema (could be query-only GraphQL)",
+        "Field-level authorization bypass evidence — introspection enabled does not confirm authz bypass"
+      ],
+      "expected_value": 0.58,
+      "recommended_agents": ["nuclei-scan", "cloud-vuln"],
+      "node_ids": [
+        "n_auth_next",
+        "n_expr_back",
+        "n_prod_app"
+      ]
+    },
+    {
+      "id": "chain_006",
+      "pattern_id": "azure_container_imds_to_lateral_movement",
+      "name": "Azure Container Apps → IMDS Metadata Token → Azure AD Lateral Movement",
+      "steps": [
+        "Confirm Azure Container App has system-assigned or user-assigned managed identity",
+        "From inside container context (via SSRF or RCE) — probe http://169.254.169.254/metadata/instance",
+        "GET http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://graph.microsoft.com/",
+        "IMDS returns managed identity access token for Microsoft Graph API",
+        "Use token to enumerate Azure AD users, groups, app registrations, service principals",
+        "Identify Azure Key Vault, Storage, or other resources accessible to managed identity",
+        "Exfiltrate secrets from Key Vault or access production databases/storage",
+        "Alternatively: use managed identity token to forge new Azure AD app credentials for persistent access"
+      ],
+      "current_evidence": [
+        "f_hlth0001",
+        "f_hlth0002"
+      ],
+      "missing_evidence": [
+        "SSRF vector into container network or RCE on container to reach IMDS",
+        "Confirmation that managed identity is assigned to the Container App",
+        "IMDS endpoint response (169.254.169.254 accessible from container network only)",
+        "Azure Key Vault or storage resources associated with managed identity"
+      ],
+      "expected_value": 0.47,
+      "recommended_agents": ["cloud-vuln", "container-vuln"],
+      "node_ids": [
+        "n_expr_back",
+        "n_health_ep",
+        "n_prod_app"
+      ]
+    }
+  ],
+  "chains_updated": [
+    {
+      "id": "chain_001",
+      "status": "DOWNGRADED",
+      "reason": "Wave 1 confirmed NextAuth rejects external callbackUrl values — open redirect to external domain blocked. Chain remains valid only for same-origin URL manipulation (e.g., /api/auth/signin?callbackUrl=%2Fmalicious-path). Reclassified from ELEVATED to LOW priority.",
+      "expected_value": 0.18
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [
+      {
+        "id": "n_graphql_ep",
+        "kind": "asset",
+        "label": "GraphQL Endpoint /graphql (auth-gated, introspection unknown)",
+        "value": 4,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "attributes": {
+          "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/graphql",
+          "tags": ["graphql", "auth-gated", "introspection-unknown", "api"]
+        },
+        "evidence_findings": ["f_api00001", "f_api00002"],
+        "first_seen_wave": 1,
+        "confirmed": true
+      }
+    ],
+    "add_edges": [
+      {
+        "id": "e_expr_back_to_graphql",
+        "from_node": "n_expr_back",
+        "to_node": "n_graphql_ep",
+        "type": "hosts",
+        "label": "Express backend hosts GraphQL endpoint — confirmed auth-gated at /graphql (chain_005)",
+        "status": "confirmed",
+        "ev": 0.95,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "evidence_findings": ["f_api00001"]
+      },
+      {
+        "id": "e_cors_null_to_exfil",
+        "from_node": "n_cors_null_origin",
+        "to_node": "n_unauth_api_routes",
+        "type": "enables",
+        "label": "Null-origin CORS enables sandboxed iframe → full credentialed API access without XSS (chain_002)",
+        "status": "confirmed",
+        "ev": 0.97,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "evidence_findings": ["f_a1b2c3d4", "f_a3c9e1f2"]
+      }
+    ],
+    "update_nodes": [],
+    "update_edges": [
+      {
+        "id": "e_auth_to_oauth_cb",
+        "update": {
+          "ev": 0.18,
+          "status": "refuted",
+          "label": "chain_001 REFUTED — NextAuth confirmed to block external callbackUrl redirects. Same-origin only."
+        }
+      }
+    ]
+  }
+}

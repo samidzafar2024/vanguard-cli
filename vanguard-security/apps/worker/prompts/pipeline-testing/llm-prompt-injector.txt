@@ -1,0 +1,3 @@
+@include(shared/_filesystem.txt)
+
+Run: `save-deliverable --type LLM_PROMPT_INJECTION --content 'llm-prompt-injector complete'`. Then say "Done".

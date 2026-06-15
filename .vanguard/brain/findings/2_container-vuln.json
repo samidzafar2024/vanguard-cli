@@ -1,0 +1,172 @@
+[
+  {
+    "id": "f_c0rs4321",
+    "wave": 2,
+    "agent": "container-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0008",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "CORS Wildcard + Credentials on All Routes Enables Cross-Origin Credential Theft",
+    "description": "All backend routes reflect arbitrary attacker-controlled Origin headers verbatim while also setting Access-Control-Allow-Credentials: true. This includes the null origin, enabling sandboxed iframe attacks. An attacker can exfiltrate authenticated user JWTs/sessions from any domain.",
+    "severity": "critical",
+    "confidence": 0.98,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["victim-visits-attacker-page"],
+    "grants": ["credential-theft", "session-hijack", "ssrf-chain-post-auth"],
+    "cve_refs": [],
+    "tags": ["container", "azure", "cors", "credentials"],
+    "deduplication_key": "container-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:cors-wildcard-credentials",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "container-vuln wave 2",
+    "evidence_safe": "OPTIONS /health with Origin: http://evil.com returned access-control-allow-origin: http://evil.com and access-control-allow-credentials: true. Tested on all routes.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_null0rg8",
+    "wave": 2,
+    "agent": "container-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0008",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "CORS null Origin Reflection with Credentials Enables Sandboxed Iframe Attack",
+    "description": "The backend reflects the literal 'null' Origin header with Access-Control-Allow-Credentials: true. Browsers send Origin: null from sandboxed iframes (sandbox attribute without allow-same-origin), enabling an attacker to bypass SameSite cookie restrictions via a sandboxed iframe hosted anywhere.",
+    "severity": "critical",
+    "confidence": 0.95,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["victim-visits-attacker-page"],
+    "grants": ["credential-theft", "session-hijack"],
+    "cve_refs": [],
+    "tags": ["container", "azure", "cors", "null-origin"],
+    "deduplication_key": "container-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:cors-null-origin",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "container-vuln wave 2",
+    "evidence_safe": "Origin: null returned access-control-allow-origin: null and access-control-allow-credentials: true, enabling sandboxed iframe exploitation.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_ssrf8af1",
+    "wave": 2,
+    "agent": "container-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0008",
+    "type": "ssrf_candidate",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/proxy",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/proxy",
+      "param": "url"
+    },
+    "title": "Auth-Gated SSRF Candidate Endpoints Present (/proxy, /pdf, /screenshot, /fetch, /render)",
+    "description": "Multiple endpoints that commonly perform server-side URL fetching exist on the backend (/proxy, /pdf, /screenshot, /fetch, /render, /preview, /import). All return 401 unauthenticated. If authentication is obtained via CORS exploitation, these endpoints are high-probability SSRF vectors to reach Azure IMDS at 169.254.169.254 and obtain managed identity credentials.",
+    "severity": "high",
+    "confidence": 0.75,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/proxy",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["authenticated"],
+    "grants": ["imds-access", "azure-managed-identity-token", "lateral-movement"],
+    "cve_refs": [],
+    "tags": ["container", "azure", "ssrf", "imds"],
+    "deduplication_key": "container-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:ssrf-candidate-endpoints",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "container-vuln wave 2",
+    "evidence_safe": "Endpoints /proxy, /pdf, /screenshot, /fetch, /render, /preview, /import exist (401 auth-gated). POST /fetch accepts JSON body. These are likely SSRF vectors post-authentication.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_xpwrby55",
+    "wave": 2,
+    "agent": "container-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0008",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "Technology Stack Disclosure via X-Powered-By: Express Header",
+    "description": "All responses include X-Powered-By: Express header, confirming Node.js/Express backend. Error pages additionally leak Express internal routing format (e.g., 'Cannot DELETE /health'). This enables targeted selection of framework-specific exploits including prototype pollution and Express-specific request handling quirks.",
+    "severity": "low",
+    "confidence": 0.99,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["container", "azure", "information-disclosure", "express"],
+    "deduplication_key": "container-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:xpoweredby-express",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "container-vuln wave 2",
+    "evidence_safe": "HTTP response header x-powered-by: Express present on all responses. Error pages show 'Cannot DELETE /health' format confirming Express routing.",
+    "evidence_quarantined": null
+  },
+  {
+    "id": "f_envlk911",
+    "wave": 2,
+    "agent": "container-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0008",
+    "type": "information_disclosure",
+    "target": {
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+      "path": "/health",
+      "param": null
+    },
+    "title": "Environment Name Disclosed in Unauthenticated /health Endpoint",
+    "description": "The publicly accessible /health endpoint returns {\"status\":\"ok\",\"env\":\"production\"}, confirming the deployment environment is production. This reduces attacker uncertainty when targeting the highest-privilege environment and confirms live production systems are in scope.",
+    "severity": "info",
+    "confidence": 0.99,
+    "evidence": {
+      "type": "http_response",
+      "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health",
+      "snippet": "[see evidence_quarantined]",
+      "artifact_path": null
+    },
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["container", "azure", "information-disclosure", "environment"],
+    "deduplication_key": "container-vuln:revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io:env-disclosure-health",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "container-vuln wave 2",
+    "evidence_safe": "GET /health returns {\"status\":\"ok\",\"env\":\"production\"} without authentication. Confirms production deployment.",
+    "evidence_quarantined": null
+  }
+]

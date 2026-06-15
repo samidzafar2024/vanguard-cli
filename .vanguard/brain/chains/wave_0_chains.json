@@ -1,0 +1,288 @@
+{
+  "wave": 0,
+  "reasoning_method": "tree_of_thoughts",
+  "chains_identified": [
+    {
+      "id": "chain_001",
+      "pattern_id": "oauth_open_redirect_to_session_hijack",
+      "name": "NextAuth.js callbackUrl Open Redirect → Session Hijack",
+      "steps": [
+        "Target /api/auth/signin?callbackUrl= parameter on NextAuth.js Azure AD provider",
+        "Craft phishing URL: https://revops-dev.vercel.app/api/auth/signin?callbackUrl=https://attacker.com/steal",
+        "Victim clicks link, Azure AD OAuth2 flow initiates with legitimate IDP",
+        "Upon OAuth completion, NextAuth redirects to unvalidated callbackUrl (attacker domain)",
+        "Attacker server receives session token cookie or authorization code in redirect",
+        "Replay session token against revops-dev.vercel.app to establish authenticated session"
+      ],
+      "current_evidence": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ],
+      "missing_evidence": [
+        "Confirm callbackUrl parameter accepts external URLs without validation (e.g., test callbackUrl=https://example.com)",
+        "Verify NextAuth.js version in use — versions < 4.24.5 have known callbackUrl open redirect (CVE-2023-48309)",
+        "Confirm redirect occurs post-OAuth to the attacker-controlled callbackUrl",
+        "Determine if session token is transmitted in the redirect (cookie SameSite=None or URL fragment)"
+      ],
+      "expected_value": 0.82,
+      "recommended_agents": ["auth-vuln", "recon"],
+      "node_ids": [
+        "n_0e02b4d2",
+        "n_auth_next",
+        "n_oauth_cb",
+        "n_prod_app"
+      ],
+      "tot_reasoning": {
+        "supporting_signals": [
+          "NextAuth.js confirmed as auth framework — historically vulnerable to callbackUrl open redirect",
+          "Azure AD OAuth2 only auth path — victim auth flow is predictable and phishable",
+          "/api/auth/providers publicly accessible — confirms Azure AD callback URL structure exposed",
+          "lesson_0_001: enumerate all provider callback URLs as attack surfaces",
+          "Edge e_auth_to_oauth_cb already exists with ev=0.75 as candidate"
+        ],
+        "blocking_signals": [
+          "NextAuth.js newer versions (>=4.24.5) restrict callbackUrl to same-origin by default",
+          "CSRF protections may prevent state parameter tampering"
+        ],
+        "ev_justification": "Strong structural signal (NextAuth + Azure AD confirmed), known CVE pattern, high-value target (production SaaS). Blocked only by version-specific patching. EV=0.82."
+      }
+    },
+    {
+      "id": "chain_002",
+      "pattern_id": "backend_api_unauthenticated_to_data_access",
+      "name": "Express Backend Route Enumeration → Unauthenticated Data Access (Dev=Prod Container)",
+      "steps": [
+        "Enumerate Express backend API routes: /api, /api/v1, /api/v2, /docs, /swagger, /openapi.json unauthenticated",
+        "Probe /health already confirmed returning env:production — signals dev and prod share same container/config",
+        "Identify routes lacking auth middleware (missing JWT/session validation)",
+        "Issue unauthenticated GET/POST requests to business data endpoints (leads, revenue, pipeline)",
+        "Extract CRM/RevOps data: customer records, deal values, pipeline stages",
+        "Optionally: probe CORS preflight — if Access-Control-Allow-Origin: * with credentials, enable cross-origin data theft from browser"
+      ],
+      "current_evidence": [
+        "f_c3d4e5f6",
+        "f_d4e5f6a7",
+        "f_e5f6a7b8"
+      ],
+      "missing_evidence": [
+        "Route enumeration: probe /api, /v1, /v2, /docs, /swagger, /openapi.json unauthenticated (lesson_0_002)",
+        "CORS preflight capture: Access-Control-Allow-Origin and Access-Control-Allow-Credentials headers (lesson_0_009 high priority)",
+        "Confirm dev backend has production data access (env:production response is strong signal but not confirmed data access)",
+        "Identify at least one business-logic endpoint missing auth middleware",
+        "Azure Container Apps sibling enumeration: other apps in livelystone-c1480484 namespace (lesson_0_003)"
+      ],
+      "expected_value": 0.79,
+      "recommended_agents": ["recon", "auth-vuln", "api-enum"],
+      "node_ids": [
+        "n_0e02b4d2",
+        "n_expr_back",
+        "n_health_ep"
+      ],
+      "tot_reasoning": {
+        "supporting_signals": [
+          "/health confirmed unauthenticated and returns env:production — critical misconfiguration",
+          "lesson_0_004 HIGH: dev env with env:production label means dev and prod may share same backend container/config with full production data access",
+          "lesson_0_002 HIGH: probe beyond /health — /api, /v1, /docs unauthenticated before assuming full auth protection",
+          "lesson_0_009 HIGH: CORS headers present but Allow-Origin not captured — credentials-bearing cross-origin requests may be allowed",
+          "Express.js backend confirmed — manual auth middleware patterns are error-prone, common to have route gaps",
+          "3 confirmed evidence findings on n_expr_back node"
+        ],
+        "blocking_signals": [
+          "JWT/session token may be enforced globally via middleware (e.g., express-jwt with unless)",
+          "Azure Container Apps may have network-level access controls beyond the application layer"
+        ],
+        "ev_justification": "Multiple high-priority lessons directly target this chain. env:production disclosure from unauthenticated endpoint is a confirmed finding. CORS misconfiguration is untested but flagged high-priority. EV=0.79."
+      }
+    },
+    {
+      "id": "chain_003",
+      "pattern_id": "azure_ad_misconfig_to_account_takeover",
+      "name": "Azure AD OIDC State/Nonce Bypass → Account Takeover",
+      "steps": [
+        "Enumerate Azure AD tenant configuration via /api/auth/providers (publicly accessible)",
+        "Extract clientId, tenantId, and authorization endpoint from provider metadata",
+        "Test CSRF protection: initiate OAuth flow, capture state parameter, attempt state reuse or fixation",
+        "Test nonce validation: attempt token substitution by replaying id_token with modified claims",
+        "If state parameter is missing or predictable — forge OAuth callback request with arbitrary code",
+        "If nonce is not validated — substitute id_token from a different user/attacker-controlled Azure AD account",
+        "Result: authenticate as arbitrary user (account takeover) or bypass authentication entirely"
+      ],
+      "current_evidence": [
+        "f_b8c9d0e1",
+        "f_b2c3d4e5"
+      ],
+      "missing_evidence": [
+        "Capture and analyze state parameter entropy/format during OAuth flow initiation",
+        "Verify nonce claim is validated in NextAuth.js Azure AD provider configuration",
+        "Test if state parameter can be reused across OAuth sessions (CSRF protection bypass)",
+        "Check if NextAuth.js NEXTAUTH_SECRET is properly set — weak or default secrets enable JWT forgery",
+        "Determine if multiple Azure AD tenants are accepted or if tenant is locked to a single org"
+      ],
+      "expected_value": 0.71,
+      "recommended_agents": ["auth-vuln", "recon"],
+      "node_ids": [
+        "n_0e02b4d2",
+        "n_auth_next",
+        "n_oauth_cb",
+        "n_prod_app"
+      ],
+      "tot_reasoning": {
+        "supporting_signals": [
+          "/api/auth/providers publicly accessible — exposes full OAuth2 configuration including clientId",
+          "Azure AD as sole auth provider — OIDC state/nonce bypass would result in full account takeover with no fallback",
+          "NextAuth.js NEXTAUTH_SECRET misconfiguration (weak/default) enables JWT session forgery",
+          "lesson_0_001: providers endpoint exposed — immediately enumerate all callback URLs as attack surface",
+          "Single auth provider means no MFA bypass complexity — one successful bypass = full access"
+        ],
+        "blocking_signals": [
+          "Azure AD enforces strict redirect_uri validation at the IDP level — callback substitution constrained to registered URIs",
+          "NextAuth.js 4.x uses PKCE by default for authorization code flow — reduces token interception risk",
+          "Modern NextAuth versions rotate state per-session and validate nonce properly"
+        ],
+        "ev_justification": "High-value attack if successful (full account takeover), but blocked by Azure AD redirect_uri enforcement and PKCE. Requires active testing to confirm state/nonce weaknesses. EV=0.71."
+      }
+    }
+  ],
+  "chains_deprioritized": [
+    {
+      "id": "chain_004",
+      "pattern_id": "pusher_unauth_channel_to_data_exfil",
+      "name": "Pusher Unauth Channel Authorization → Data Exfiltration",
+      "deprioritized_reason": "Pusher node n_push_ws is unconfirmed (ev=0.7 candidate). Channel auth endpoint /pusher/auth or /api/pusher/auth not yet located. Must confirm endpoint existence before chain evaluation. Recommend wave 1 probing.",
+      "expected_value": 0.58,
+      "recommended_agents": ["recon", "api-enum"]
+    },
+    {
+      "id": "chain_005",
+      "pattern_id": "payment_subdomain_to_financial_fraud",
+      "name": "pay.copointdata.com Attack → Financial Impact",
+      "deprioritized_reason": "Payment subdomain discovered via DNS but timed out during wave 0. Tech stack uncharacterized. Must fingerprint before exploitation chain can be built. lesson_0_006 flags this for dedicated wave 1 subdomain recon.",
+      "expected_value": 0.45,
+      "recommended_agents": ["recon", "subdomain-enum"]
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [
+      {
+        "id": "n_session_hijack",
+        "kind": "impact",
+        "label": "Session Hijack via OAuth Open Redirect",
+        "value": 5,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0001",
+        "attributes": {
+          "impact_type": "session_hijack",
+          "affected_asset": "revops-dev.vercel.app",
+          "tags": ["session-hijack", "oauth", "credential-theft", "high-impact"]
+        },
+        "evidence_findings": ["f_b8c9d0e1", "f_b2c3d4e5"],
+        "first_seen_wave": 0,
+        "confirmed": false
+      },
+      {
+        "id": "n_unauth_api_routes",
+        "kind": "vuln_candidate",
+        "label": "Unauthenticated Express API Routes (production data exposure)",
+        "value": 5,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "attributes": {
+          "host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+          "url": "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/api/",
+          "tags": ["unauthenticated", "api-route", "express", "data-exposure", "production"]
+        },
+        "evidence_findings": ["f_d4e5f6a7", "f_c3d4e5f6"],
+        "first_seen_wave": 0,
+        "confirmed": false
+      },
+      {
+        "id": "n_oidc_state_bypass",
+        "kind": "vuln_candidate",
+        "label": "Azure AD OIDC State/Nonce Parameter Bypass",
+        "value": 4,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0001",
+        "attributes": {
+          "host": "revops-dev.vercel.app",
+          "url": "https://revops-dev.vercel.app/api/auth/callback/azure-ad",
+          "tags": ["oidc", "state-bypass", "nonce-bypass", "azure-ad", "nextauth"]
+        },
+        "evidence_findings": ["f_b8c9d0e1"],
+        "first_seen_wave": 0,
+        "confirmed": false
+      }
+    ],
+    "add_edges": [
+      {
+        "id": "e_oauth_cb_to_session_hijack",
+        "from": "n_oauth_cb",
+        "to": "n_session_hijack",
+        "type": "leads_to",
+        "label": "Unvalidated callbackUrl redirect delivers session token to attacker (chain_001)",
+        "status": "candidate",
+        "ev": 0.82,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0001",
+        "evidence_findings": ["f_b8c9d0e1", "f_b2c3d4e5"]
+      },
+      {
+        "id": "e_health_to_unauth_routes",
+        "from": "n_health_ep",
+        "to": "n_unauth_api_routes",
+        "type": "leads_to",
+        "label": "env:production unauthenticated /health signals broader route exposure on production-config backend (chain_002)",
+        "status": "candidate",
+        "ev": 0.79,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0009",
+        "evidence_findings": ["f_d4e5f6a7", "f_c3d4e5f6"]
+      },
+      {
+        "id": "e_auth_to_oidc_bypass",
+        "from": "n_auth_next",
+        "to": "n_oidc_state_bypass",
+        "type": "leads_to",
+        "label": "Azure AD provider state/nonce parameter weakness enables CSRF or token substitution (chain_003)",
+        "status": "candidate",
+        "ev": 0.71,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0001",
+        "evidence_findings": ["f_b8c9d0e1"]
+      },
+      {
+        "id": "e_oidc_bypass_to_prod",
+        "from": "n_oidc_state_bypass",
+        "to": "n_prod_app",
+        "type": "leads_to",
+        "label": "Successful OIDC state/nonce bypass authenticates attacker as arbitrary user on production (chain_003)",
+        "status": "candidate",
+        "ev": 0.65,
+        "ptes_phase": "lateral-movement",
+        "attack_tactic": "TA0008",
+        "evidence_findings": ["f_b8c9d0e1"]
+      },
+      {
+        "id": "e_session_hijack_to_prod",
+        "from": "n_session_hijack",
+        "to": "n_prod_app",
+        "type": "leads_to",
+        "label": "Hijacked session reused against production deployment for full authenticated access (chain_001)",
+        "status": "candidate",
+        "ev": 0.75,
+        "ptes_phase": "lateral-movement",
+        "attack_tactic": "TA0008",
+        "evidence_findings": ["f_b8c9d0e1", "f_a7b8c9d0"]
+      }
+    ],
+    "update_nodes": [],
+    "update_edges": [
+      {
+        "id": "e_auth_to_oauth_cb",
+        "update": {
+          "ev": 0.82,
+          "label": "OAuth2 callbackUrl open redirect — chain_001 Tree-of-Thoughts EV updated from 0.75 to 0.82 based on NextAuth CVE-2023-48309 pattern match"
+        }
+      }
+    ]
+  }
+}

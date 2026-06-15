@@ -1,0 +1,25 @@
+[
+  {
+    "id": "f_ws000001",
+    "wave": 4, "agent": "websocket-vuln",
+    "ptes_phase": "vulnerability-analysis",
+    "attack_tactic": "TA0001",
+    "type": "websocket_auth",
+    "target": {"url": "https://revops-dev.vercel.app/api/pusher/auth", "host": "revops-dev.vercel.app", "path": "/api/pusher/auth", "param": "channel_name"},
+    "title": "Pusher auth endpoint returns 403 Forbidden — properly session-gated",
+    "description": "POST to /api/pusher/auth with socket_id and channel_name returns 403 without a valid NextAuth session. Private channel authorization is properly gated. Cannot test channel enumeration unauthenticated.",
+    "severity": "info",
+    "confidence": 0.95,
+    "evidence": {"type": "http_response", "url": "https://revops-dev.vercel.app/api/pusher/auth", "snippet": "[see evidence_quarantined]", "artifact_path": null},
+    "prerequisites": ["unauthenticated"],
+    "grants": [],
+    "cve_refs": [],
+    "tags": ["websocket", "pusher", "needs-auth"],
+    "deduplication_key": "websocket-vuln:revops-dev.vercel.app:pusher_auth_403",
+    "trust_tier": "trusted",
+    "evidence_source": "agent_direct",
+    "provenance": "websocket-vuln wave 4",
+    "evidence_safe": "Pusher /api/pusher/auth returns 403 Forbidden without valid session — properly gated",
+    "evidence_quarantined": null
+  }
+]

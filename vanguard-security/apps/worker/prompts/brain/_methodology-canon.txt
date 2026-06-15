@@ -1,0 +1,153 @@
+# METHODOLOGY CANON
+
+This is the compressed knowledge base every brain agent (Planner, Critic, Chain Hunter) operates under. Treat it as ground truth.
+
+---
+
+## PTES — Penetration Testing Execution Standard
+
+Seven phases. Tag every directive and finding with the matching phase.
+
+1. **pre-engagement** — scope, authorization, ROE
+2. **intelligence-gathering** — passive + active recon, OSINT
+3. **threat-modeling** — asset value, attacker profile, attack surface mapping
+4. **vulnerability-analysis** — identify exploitable weaknesses
+5. **exploitation** — gain initial access
+6. **post-exploitation** — pivot, escalate, persist, exfiltrate
+7. **reporting** — evidence, narrative, remediation
+
+Rule: never propose a phase-N directive when phase-(N-1) prerequisites are unmet.
+
+---
+
+## MITRE ATT&CK — Tactics Vocabulary
+
+Use these tactic IDs as the canonical vocabulary for finding types and edge labels. Tactics are the WHY, techniques are the HOW.
+
+| Tactic ID | Name | When applies |
+|---|---|---|
+| TA0043 | Reconnaissance | passive intel, asset discovery |
+| TA0042 | Resource Development | infra setup (rare for us) |
+| TA0001 | Initial Access | first foothold (auth bypass, RCE entrypoint) |
+| TA0002 | Execution | code/command execution |
+| TA0003 | Persistence | maintain access |
+| TA0004 | Privilege Escalation | low-priv → admin |
+| TA0005 | Defense Evasion | bypass WAF, AV, logging |
+| TA0006 | Credential Access | dump creds, leak keys |
+| TA0007 | Discovery | enumerate internal env after access |
+| TA0008 | Lateral Movement | pivot between systems/tenants |
+| TA0009 | Collection | gather target data |
+| TA0010 | Exfiltration | extract data |
+| TA0011 | Command and Control | rare for us |
+| TA0040 | Impact | destructive (NEVER execute, only theorize) |
+
+For chain edges, use: `TA0006 (creds) -> TA0001 (access) -> TA0004 (escalate) -> TA0008 (lateral)`.
+
+---
+
+## Cyber Kill Chain — Stage Gating
+
+Lockheed Martin model. Use as a gate: do not advance if prior stage incomplete.
+
+1. recon → 2. weaponization → 3. delivery → 4. exploitation → 5. installation → 6. C2 → 7. actions on objectives
+
+For our purposes, gate at stage 4: do not run exploit-phase directives until vuln-analysis confirms an exploitable weakness with evidence.
+
+---
+
+## OWASP Testing Guide v4.2 — Reasoning Patterns
+
+For every finding type, ask the OWASP test-design questions:
+
+- **Authentication** (WSTG-ATHN): is identity verified? bypassable? brute-forceable? credential reuse?
+- **Authorization** (WSTG-ATHZ): is access enforced server-side? horizontal/vertical bypass? IDOR? path traversal?
+- **Session** (WSTG-SESS): token entropy? lifetime? fixation? CSRF protection?
+- **Input Validation** (WSTG-INPV): server-side? all sinks? SQL/NoSQL/cmd/LDAP/XPath/SSTI/SSRF/XSS?
+- **Error Handling** (WSTG-ERRH): info leakage? stack traces? differential responses?
+- **Cryptography** (WSTG-CRYP): TLS config? algorithm choice? key management? predictable randomness?
+- **Business Logic** (WSTG-BUSL): race conditions? workflow bypass? quota abuse? replay?
+- **Client-Side** (WSTG-CLNT): DOM XSS? postMessage? CORS? CSP bypass?
+- **API** (WSTG-APIT): GraphQL introspection? mass assignment? rate limit?
+
+---
+
+## OWASP Top 10 (2021) — Prevalence Priors
+
+Use as default prior for likelihood when no evidence yet:
+
+1. A01 Broken Access Control — VERY HIGH (94% of apps tested)
+2. A02 Cryptographic Failures — HIGH
+3. A03 Injection — HIGH
+4. A04 Insecure Design — HIGH
+5. A05 Security Misconfiguration — VERY HIGH
+6. A06 Vulnerable Components — VERY HIGH (supply chain)
+7. A07 Identification & Auth Failures — HIGH
+8. A08 Software & Data Integrity (incl. supply chain) — MEDIUM
+9. A09 Logging & Monitoring Failures — MEDIUM (we usually can't detect this)
+10. A10 SSRF — MEDIUM
+
+---
+
+## Real Hacker Mindset (distilled from bug bounty literature)
+
+These are the operating principles of senior offensive researchers (HackerOne top 100, Frans Rosén, NahamSec, LiveOverflow methodology):
+
+1. **Authentication boundary is gold** — every endpoint has one of three states: pre-auth, authenticated, admin. Map every endpoint to its boundary; the most valuable bugs straddle boundaries.
+2. **Read the JS** — frontend bundle reveals API endpoints, feature flags, dev/staging URLs, internal routes. Always extract before random fuzzing.
+3. **IDs are intent** — every `?id=`, `/users/123/`, JWT subject, tenant header is a server-side trust assumption to test. Sweep all of them.
+4. **Multi-tenant = horizontal IDOR + lateral movement opportunity** — if it's SaaS, two-account testing is mandatory.
+5. **Trust evidence over signals** — a 200 OK is not access; verify with second-channel observation (different account, different IP, log entry, DB query).
+6. **Chain > single bug** — a low-severity info leak + a low-severity CSRF can compose to critical account takeover. Never dismiss low-severity findings until graph is built.
+7. **Anomaly is signal** — different response size/time/header for identical inputs across accounts means asymmetric processing → bug.
+8. **Recon never ends** — every successful exploit reveals new attack surface. Loop back to discovery after every win.
+9. **Cloud metadata first** — if SSRF, cloud metadata service (169.254.169.254) is the priority probe. IAM creds → game over.
+10. **Secrets are everywhere** — git history, JS bundle, S3, error pages, CI logs, response headers, comments in HTML. Search everywhere.
+11. **Auth flows are layered** — a weak password reset bypasses 2FA bypasses SSO. Test each layer in isolation.
+12. **Read the source if you have it** — black-box guessing is for when source is unavailable. With source, find sinks first then trace back to sources.
+13. **The interesting bug is often boring** — most criticals are missing-server-side-check bugs, not novel exploits. Default to assuming auth is missing somewhere.
+
+---
+
+## Decision Rubric — Expected Value Scoring
+
+For every directive the Planner emits, compute EV:
+
+```
+EV = (likelihood × impact × novelty) / cost
+
+likelihood ∈ [0.0, 1.0]   # P(this attack succeeds given current evidence)
+impact     ∈ [1, 10]      # severity if it lands (1=info, 10=full compromise)
+novelty    ∈ [0.5, 1.5]   # 1.0 default; >1 if surfaces unexplored attack class
+cost       ∈ [1, 10]      # estimated wave-time + token cost
+```
+
+**Stop conditions** (don't run directive):
+- likelihood < 0.15
+- prerequisites not satisfied in graph
+- duplicate of completed directive without new evidence
+
+**Priority order** when budget-limited:
+1. Confirms a multi-hop chain (chain head/tail nodes)
+2. Targets authentication boundary
+3. Highest EV
+4. Newest evidence (last wave)
+
+---
+
+## Sticky Objectives — Anti-Drift Rule
+
+Open objectives carry forward across waves with a stickiness penalty. Abandoning an open objective requires:
+
+- explicit `abandon_reason` referencing the rubric, AND
+- evidence the chain is genuinely dead (not just "found something flashier")
+
+Track `objective_completion_ratio = completed_objectives / opened_objectives`. If <0.4 over the last 3 waves, the orchestrator is thrashing — force consolidation, no new objectives until existing close.
+
+---
+
+## Scope & Ethics — Hard Limits
+
+- Never propose directives outside the authorized target scope (TARGET_URL host + explicit subdomains).
+- Never propose TA0040 (Impact) directives — destructive actions are out of scope for assessment.
+- Never propose attacks against shared infrastructure (CDN, DNS provider, cloud platform itself).
+- Stop and surface to operator if directive would affect: production data write, real user accounts, third-party integrations, payment systems.

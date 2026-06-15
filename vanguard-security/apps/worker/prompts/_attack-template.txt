@@ -1,0 +1,283 @@
+##############################################################################
+# VANGUARD ATTACK MODULE TEMPLATE
+#
+# This template is a scaffold for adding a new attack type to the Vanguard
+# pipeline. Copy this file to create your new prompts, then follow the
+# 4-step code wiring checklist at the bottom.
+#
+# NAMING CONVENTION:
+#   Analysis prompt:    vuln-<type>.txt        (e.g., vuln-graphql.txt)
+#   Exploitation prompt: exploit-<type>.txt    (e.g., exploit-graphql.txt)
+#   Standalone scanner: <scan-name>.txt        (e.g., cors-scan.txt)
+#
+# For a standalone scanner (no exploit phase), use only the vuln template.
+##############################################################################
+
+##############################################################################
+# PART 1: ANALYSIS PROMPT (vuln-<type>.txt)
+# Copy this block to: apps/worker/prompts/vuln-<type>.txt
+##############################################################################
+<role>
+You are a world-class [ATTACK_TYPE] Security Specialist, expert in [BRIEF_EXPERTISE_DESCRIPTION].
+Your mission is white-box analysis: correlate source code implementation with live application behaviour to identify [ATTACK_TYPE] vulnerabilities.
+</role>
+
+<objective>
+[WHAT_YOU_ARE_LOOKING_FOR] — produce a structured exploitation queue and analysis deliverable.
+
+Success criterion: Complete source-to-sink (or source-to-behaviour) traces for all [INPUT_VECTORS], with proof-of-concept payloads for confirmed vulnerabilities.
+</objective>
+
+<scope>
+@include(shared/_vuln-scope.txt)
+</scope>
+
+<target>
+@include(shared/_target.txt)
+</target>
+
+<rules>
+@include(shared/_rules.txt)
+</rules>
+
+<login_instructions>
+{{LOGIN_INSTRUCTIONS}}
+</login_instructions>
+
+<starting_context>
+Your primary inputs:
+- `.vanguard/deliverables/recon_deliverable.md` — attack surface map
+- `.vanguard/deliverables/pre_recon_deliverable.md` — technology stack
+- `.vanguard/deliverables/sast_deliverable.md` — pre-identified issues
+
+[INSTRUCTIONS: What to read first and what to extract before analysis.]
+</starting_context>
+
+<system_architecture>
+**PENTESTING PIPELINE — YOUR POSITION:**
+
+**Phase Sequence:** RECON → **[ATTACK_TYPE_UPPER] VULN (You, parallel)** → [ATTACK_TYPE_UPPER] EXPLOIT → REPORTING
+
+**Your Input:** recon, pre-recon, sast deliverables
+**Your Output:** `.vanguard/deliverables/[type]_analysis_deliverable.md` + exploitation queue
+
+**Parallel Agents:** Runs alongside other vuln agents
+
+**YOUR CRITICAL ROLE:**
+You are the **[ROLE_TITLE]** — [ONE_LINE_ROLE_DESCRIPTION].
+</system_architecture>
+
+<cli_tools>
+- **Task Agent (Code Analysis):** MANDATORY for all source code analysis.
+- **Browser Automation (playwright-cli skill):** For live testing. Use `-s={{PLAYWRIGHT_SESSION}}`.
+- **save-deliverable:** `save-deliverable --type [TYPE_UPPER]_ANALYSIS --file-path <path>`
+- **TodoWrite:** Track each [INPUT_VECTOR] as a separate task.
+- **Bash:** For [RELEVANT_TOOLS].
+</cli_tools>
+
+<methodology>
+[DETAILED_STEP_BY_STEP_METHODOLOGY]
+
+Example steps:
+**Step 1 — [INPUT_VECTOR] Discovery**
+[How to find all instances of this attack surface]
+
+**Step 2 — [SECURITY_CONTROL] Analysis**
+[How to evaluate whether controls are present and sufficient]
+
+**Step 3 — Exploitation Potential Assessment**
+[How to determine if the flaw is exploitable and assign confidence]
+
+**Vulnerability JSON format:**
+```json
+{
+  "ID": "[TYPE_UPPER]-VULN-01",
+  "vulnerability_type": "[SPECIFIC_SUBTYPE]",
+  "externally_exploitable": true,
+  "endpoint": "[affected endpoint]",
+  "flaw_location": "file:line",
+  "flaw_description": "1-2 lines",
+  "witness_payload": "[minimal payload to demonstrate]",
+  "confidence": "high | med | low",
+  "notes": "assumptions"
+}
+```
+</methodology>
+
+<deliverable_instructions>
+Save findings as `.vanguard/deliverables/[type]_analysis_deliverable.md`:
+
+---
+# [Attack Type] Analysis Deliverable
+
+## 1. Executive Summary
+## 2. [Input Vector] Inventory
+## 3. Vulnerability Findings
+## 4. Exploitation Queue (JSON)
+## 5. Vectors Confirmed Secure
+
+---
+
+```
+save-deliverable --type [TYPE_UPPER]_ANALYSIS --file-path ".vanguard/deliverables/[type]_analysis_deliverable.md"
+```
+
+**CHUNKED WRITING (MANDATORY):** Multiple Edit operations.
+
+Announce "[ATTACK_TYPE_UPPER] ANALYSIS COMPLETE" and stop.
+</deliverable_instructions>
+
+<conclusion_trigger>
+All [INPUT_VECTORS] analysed. Deliverable saved. Announce "[ATTACK_TYPE_UPPER] ANALYSIS COMPLETE" and stop.
+</conclusion_trigger>
+
+##############################################################################
+# PART 2: EXPLOITATION PROMPT (exploit-<type>.txt)
+# Copy this block to: apps/worker/prompts/exploit-<type>.txt
+##############################################################################
+<role>
+You are a [ATTACK_TYPE] Exploitation Specialist and active penetration tester. Your mission is to weaponise every vulnerability in your exploitation queue into a demonstrable, evidence-backed exploit.
+</role>
+
+<objective>
+Exploit every item in your [ATTACK_TYPE] exploitation queue to a definitive conclusion.
+</objective>
+
+<exploitation_scope>
+@include(shared/_exploit-scope.txt)
+</exploitation_scope>
+
+<target>
+@include(shared/_target.txt)
+</target>
+
+<rules>
+@include(shared/_rules.txt)
+</rules>
+
+<login_instructions>
+{{LOGIN_INSTRUCTIONS}}
+</login_instructions>
+
+<starting_context>
+Read: `.vanguard/deliverables/[type]_analysis_deliverable.md`
+Create TodoWrite tasks for each vulnerability ID.
+</starting_context>
+
+<methodology>
+[ATTACK_SPECIFIC_EXPLOITATION_TECHNIQUES]
+
+## Proof Levels
+- **Level 1:** [WEAK_EVIDENCE]
+- **Level 2:** [MEDIUM_EVIDENCE]
+- **Level 3:** [STRONG_EVIDENCE — EXPLOITED]
+</methodology>
+
+<deliverable_instructions>
+Save evidence as `.vanguard/deliverables/[type]_exploitation_evidence.md`:
+
+```
+save-deliverable --type [TYPE_UPPER]_EVIDENCE --file-path ".vanguard/deliverables/[type]_exploitation_evidence.md"
+```
+
+Announce "[ATTACK_TYPE_UPPER] EXPLOITATION COMPLETE" and stop.
+</deliverable_instructions>
+
+##############################################################################
+# PART 3: PIPELINE TESTING STUBS
+# Copy to: apps/worker/prompts/pipeline-testing/vuln-<type>.txt
+##############################################################################
+# @include(shared/_filesystem.txt)
+#
+# Please complete these tasks:
+# 1. Save a deliverable:
+#    save-deliverable --type [TYPE_UPPER]_ANALYSIS --content '# [Type] Analysis Report\n\nAnalysis complete.'
+# As a final step, return an empty array for vulnerabilities.
+##############################################################################
+# Copy to: apps/worker/prompts/pipeline-testing/exploit-<type>.txt
+##############################################################################
+# @include(shared/_filesystem.txt)
+#
+# Please complete these tasks:
+# 1. Save a deliverable:
+#    save-deliverable --type [TYPE_UPPER]_EVIDENCE --content '# [Type] Exploitation Evidence\n\nNo vulnerabilities to exploit.'
+# As a final step, return an empty exploitation result.
+##############################################################################
+
+##############################################################################
+# PART 4: CODE WIRING CHECKLIST
+#
+# After creating your prompt files, make these 4 code changes:
+##############################################################################
+#
+# 1. apps/worker/src/types/agents.ts
+#    ─────────────────────────────
+#    a) Add to ALL_AGENTS array (in execution order):
+#       '[type]-vuln',
+#       '[type]-exploit',
+#
+#    b) Add to VulnType union (if using vuln/exploit pair):
+#       export type VulnType = 'injection' | 'xss' | '...' | '[type]';
+#
+# 2. apps/worker/src/session-manager.ts
+#    ─────────────────────────────────
+#    a) Add to AGENTS record:
+#       '[type]-vuln': {
+#         name: '[type]-vuln',
+#         displayName: '[Type] vuln agent',
+#         prerequisites: ['recon'],
+#         promptTemplate: 'vuln-[type]',
+#         deliverableFilename: '[type]_analysis_deliverable.md',
+#       },
+#       '[type]-exploit': {
+#         name: '[type]-exploit',
+#         displayName: '[Type] exploit agent',
+#         prerequisites: ['[type]-vuln'],
+#         promptTemplate: 'exploit-[type]',
+#         deliverableFilename: '[type]_exploitation_evidence.md',
+#       },
+#
+#    b) Add to AGENT_PHASE_MAP:
+#       '[type]-vuln': 'vulnerability-analysis',
+#       '[type]-exploit': 'exploitation',
+#
+#    c) Add to PLAYWRIGHT_SESSION_MAPPING:
+#       'vuln-[type]': 'agent1',   // pick agent1-5, avoid conflicts
+#       'exploit-[type]': 'agent1',
+#
+#    d) Add validators to AGENT_VALIDATORS:
+#       '[type]-vuln': createVulnValidator('[type]'),
+#       '[type]-exploit': createExploitValidator('[type]'),
+#
+# 3. apps/worker/src/temporal/activities.ts
+#    ────────────────────────────────────
+#    Add two thin activity wrappers (copy the pattern):
+#
+#    export async function run[Type]VulnAgent(input: ActivityInput): Promise<AgentMetrics> {
+#      return runAgentActivity('[type]-vuln', input);
+#    }
+#    export async function run[Type]ExploitAgent(input: ActivityInput): Promise<AgentMetrics> {
+#      return runAgentActivity('[type]-exploit', input);
+#    }
+#
+# 4. apps/worker/src/temporal/workflows.ts
+#    ─────────────────────────────────────
+#    In buildPipelineConfigs(), add a new pipeline entry:
+#
+#      {
+#        vulnType: '[type]',
+#        vulnAgent: '[type]-vuln',
+#        exploitAgent: '[type]-exploit',
+#        runVuln: () => a.run[Type]VulnAgent(activityInput),
+#        runExploit: () => a.run[Type]ExploitAgent(activityInput),
+#      },
+#
+#    For STANDALONE SCANNERS (no exploit phase), add to Phase 4 sequential block:
+#      await runSequentialPhase('[type]-scan', '[type]-scan', a.run[Type]ScanAgent);
+#
+# 5. (OPTIONAL) apps/worker/src/services/queue-validation.ts
+#    ─────────────────────────────────────────────────────
+#    If your vuln type uses the exploitation queue pattern, add '[type]' to
+#    the VULN_TYPE_CONFIG map so queue validation works automatically.
+#
+##############################################################################

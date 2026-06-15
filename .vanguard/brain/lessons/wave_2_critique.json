@@ -1,0 +1,114 @@
+{
+  "wave": 2,
+  "critique_timestamp": "2026-05-01T00:00:00.000Z",
+  "findings_reviewed": 19,
+  "high_value_findings": [
+    "f_a3c7e1d2",
+    "f_b9f2d4a8",
+    "f_c4e8b2f1",
+    "f_c1a4b2e8",
+    "f_c0rs4321",
+    "f_null0rg8",
+    "f_ssrf8af1",
+    "f_b7e2d4a9"
+  ],
+  "methodology_gaps": [
+    "OIDC nonce validation was flagged but not actively tested via live Azure AD OIDC flow — replayed id_token with modified sub/email was not attempted",
+    "RBAC IDOR at /rbac/users/{id}/role not tested with an authenticated low-privilege session — horizontal/vertical escalation unconfirmed",
+    "pay.copointdata.com still uncharacterised — payment subdomain timed out in wave 0 and was not retried in wave 2",
+    "/graphql introspection not tested post-auth — auth-gated GraphQL schema fully unknown",
+    "Azure IMDS reachability not confirmed from SSRF-capable endpoints — chain_006 is theoretical without a live SSRF->IMDS probe",
+    "No post-auth deep testing performed — SSRF endpoints (/proxy, /pdf, /screenshot, /fetch, /render) were identified but not probed against internal Azure metadata service",
+    "Git commit SHA (61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1) not cross-referenced against public GitHub orgs to confirm source exposure"
+  ],
+  "lessons": [
+    {
+      "id": "lesson_2_001",
+      "text": "CORS null-origin exploitation is self-contained and does not require XSS — a sandboxed iframe (sandbox attribute on an attacker-hosted page) creates a null-origin context that the backend reflects with credentials:true. Wave 5 exploitation can proceed directly with a PoC HTML page without needing any XSS vector found in Wave 4.",
+      "applies_to_wave": [3, 4, 5],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_2_002",
+      "text": "CORS wildcard-with-credentials is confirmed on ALL backend routes including 401 responses — the CSRF double-submit pattern is completely defeated because an attacker can CORS-read /api/auth/csrf to extract the csrf-token, then replay it in a credentialed state-mutating POST. Wave 3 should enumerate all state-mutating endpoints for maximum chain impact.",
+      "applies_to_wave": [3, 4, 5],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_2_003",
+      "text": "GitHub leaks scan is highest-priority for Wave 3 — the Git SHA 61c5fdeac36ed85a883ae93b78c06d03f9f4e4a1 and Azure Tenant ID 9046c3d1-04fe-4afe-9e4f-9217f27b5a66 confirm a real codebase. If NEXTAUTH_SECRET or Azure client_secret is in any public repo, the entire auth stack is compromised without needing CORS exploitation.",
+      "applies_to_wave": [3, 4, 5],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_2_004",
+      "text": "OIDC nonce bypass (chain_003, EV=0.76) requires active live testing — the Azure AD OIDC flow must be exercised to determine if NextAuth validates the nonce claim in id_tokens. This cannot be confirmed statically. Wave 3 OSINT should surface the exact NextAuth version in use, as CVE-2023-48309 applicability depends on version.",
+      "applies_to_wave": [3, 4],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_2_005",
+      "text": "11 SSRF-capable endpoints are auth-gated but represent a critical post-authentication attack surface for chain_006. Once any authenticated session is obtained (via CORS exploitation, leaked credentials, or OSINT social engineering), SSRF against Azure IMDS (169.254.169.254) must be the immediate next action to attempt managed identity token theft.",
+      "applies_to_wave": [3, 4, 5],
+      "priority": "high"
+    },
+    {
+      "id": "lesson_2_006",
+      "text": "Supply chain analysis of Next.js and NextAuth versions is high value — the stack uses Next.js and NextAuth which have had significant CVEs (CVE-2023-48309, CVE-2024-34351, CVE-2025-29927). Exact version pins from package.json or bundle fingerprinting could confirm exploitable vulnerabilities bypassing auth entirely.",
+      "applies_to_wave": [3],
+      "priority": "medium"
+    },
+    {
+      "id": "lesson_2_007",
+      "text": "OSINT enumeration of revops.copointdata.com user base (LinkedIn, Apollo, breach databases) is critical for demonstrating real-world chain_002 impact — the null-origin CORS PoC requires a victim user to visit the attacker page. If real employee emails are known, a targeted spear-phishing delivery becomes the missing exploitation link.",
+      "applies_to_wave": [3, 4],
+      "priority": "medium"
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [
+      {
+        "id": "lesson_node_2_001",
+        "type": "lesson",
+        "label": "CORS null-origin: no XSS needed — sandboxed iframe is sufficient for Wave 5",
+        "wave": 2,
+        "priority": "high"
+      },
+      {
+        "id": "lesson_node_2_003",
+        "type": "lesson",
+        "label": "GitHub leaks scan highest priority — Git SHA confirms real codebase exposure",
+        "wave": 2,
+        "priority": "high"
+      }
+    ],
+    "add_edges": [
+      {
+        "from": "lesson_node_2_001",
+        "to": "chain_002",
+        "type": "strengthens",
+        "label": "removes XSS prerequisite from chain_002"
+      },
+      {
+        "from": "lesson_node_2_003",
+        "to": "chain_003",
+        "type": "supports",
+        "label": "NEXTAUTH_SECRET leak would confirm chain_003 JWT forgery"
+      }
+    ],
+    "update_nodes": [
+      {
+        "id": "f_b9f2d4a8",
+        "trust_tier": "trusted",
+        "confidence": 0.97
+      },
+      {
+        "id": "obj_004",
+        "status": "in_progress",
+        "notes": "Wave 2 confirmed null-origin CORS — Wave 5 PoC delivery path now clear"
+      }
+    ],
+    "update_edges": []
+  },
+  "stop_reason": null
+}

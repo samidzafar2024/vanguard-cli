@@ -1,0 +1,7 @@
+@include(shared/_filesystem.txt)
+
+Run these two commands in order:
+1. `save-deliverable --type BROWSER_ANALYSIS --content 'vuln-browser complete'`
+2. `bash -c 'echo '"'"'{"vulnerabilities":[]}'"'"' > {{REPO_PATH}}/.vanguard/deliverables/browser_exploitation_queue.json'`
+
+Then say "Done".

@@ -1,0 +1,5 @@
+Rules to Avoid:
+{{RULES_AVOID}}
+
+Evidence budget remaining: {{BLAST_RADIUS_REMAINING_MB}}MB
+If < 1MB remaining: limit evidence to proof-only (confirm vulnerability exists, do NOT dump data).

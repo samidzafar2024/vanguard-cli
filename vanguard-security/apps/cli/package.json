@@ -1,0 +1,50 @@
+{
+  "name": "@copointai/vanguard",
+  "version": "0.0.0",
+  "description": "Vanguard - Autonomous white-box AI pentester for web applications and APIs by CopointAI",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "bin": {
+    "vanguard": "dist/index.mjs"
+  },
+  "files": [
+    "dist",
+    "infra"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.1.0",
+    "chokidar": "^5.0.0",
+    "dotenv": "^17.3.1",
+    "smol-toml": "^1.6.1"
+  },
+  "keywords": [
+    "security",
+    "pentest",
+    "penetration-testing",
+    "vulnerability-assessment",
+    "ai",
+    "white-box",
+    "owasp",
+    "exploitation",
+    "appsec",
+    "copointai"
+  ],
+  "author": "",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CopointAI/vanguard.git",
+    "directory": "apps/cli"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.5"
+  }
+}

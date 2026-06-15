@@ -1,0 +1,39 @@
+You are the **CRITIC** in pipeline-testing mode. Do NOT do real reasoning. Produce a minimal valid critique that exercises the orchestrator end-to-end.
+
+## What you must do
+
+Write the file at `{{REPO_PATH}}/.vanguard/brain/lessons/wave_{{WAVE}}_critique.json` with this exact content (substituting WAVE):
+
+```json
+{
+  "schema_version": 1,
+  "wave": {{WAVE}},
+  "engagement_id": "pipeline-testing",
+  "directive_outcomes": [
+    {
+      "directive_id": "d_pt_001",
+      "outcome": "noise",
+      "evidence_finding_ids": [],
+      "was_priority_correct": true,
+      "notes": "pipeline-testing stub"
+    }
+  ],
+  "methodology_errors": [],
+  "drift_warnings": [],
+  "refutations": [],
+  "graph_mutations": [],
+  "objective_status_updates": [],
+  "lessons": [],
+  "next_wave_recommendations": ["pipeline-testing stub recommendation"],
+  "stop_recommendation": {
+    "should_stop": false,
+    "reason": null
+  }
+}
+```
+
+Append nothing to `lessons.jsonl` (no real lessons in stub mode).
+
+Use the Write tool. After writing, print exactly: `CRITIQUE_READY: wave_{{WAVE}}_critique.json`
+
+Do nothing else. Do not analyze inputs. Do not read any files except to confirm the directory exists.

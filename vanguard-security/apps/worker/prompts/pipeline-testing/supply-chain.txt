@@ -1,0 +1,8 @@
+@include(shared/_filesystem.txt)
+
+Please complete these tasks:
+
+1. Save a supply chain deliverable:
+   - Run: `save-deliverable --type SUPPLY_CHAIN --content '# Supply Chain Security Deliverable\n\nDependency audit complete. No critical CVEs detected.'`
+
+As a final step, announce completion.

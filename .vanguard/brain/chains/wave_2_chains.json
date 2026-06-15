@@ -1,0 +1,154 @@
+{
+  "wave": 2,
+  "chains_identified": [
+    {
+      "id": "chain_002_updated",
+      "name": "CORS Null-Origin → Credentialed API Access → Session Hijack",
+      "description": "Attacker hosts an HTML page with a sandboxed iframe (sandbox attribute creates null-origin context). The iframe makes credentialed fetch() calls to the backend API. Because the backend reflects Origin: null with Access-Control-Allow-Credentials: true on ALL routes, the iframe receives authenticated API responses including session tokens/JWTs. Victim only needs to visit the attacker page while authenticated — no XSS required.",
+      "steps": [
+        "Host iframe-sandboxed page on attacker domain (e.g., attacker.io/exploit.html) with <iframe sandbox='allow-scripts' srcdoc='...'> containing credentialed fetch to /auth/me",
+        "Victim (authenticated revops.copointdata.com user) visits attacker.io/exploit.html — social engineering via email/LinkedIn",
+        "Sandboxed iframe origin resolves to null — backend reflects ACAO: null + ACAC: true",
+        "Attacker reads /auth/me response containing user identity, role, session JWT or auth token",
+        "Optionally: read /api/auth/csrf for CSRF token, then replay credentialed POST to state-mutating endpoints",
+        "Authenticate as victim using extracted session material — account takeover complete"
+      ],
+      "current_evidence": [
+        "f_a3c7e1d2",
+        "f_b9f2d4a8",
+        "f_c4e8b2f1",
+        "f_c0rs4321",
+        "f_null0rg8"
+      ],
+      "missing_evidence": [
+        "Victim must visit attacker-controlled page while authenticated — delivery mechanism needed (spear-phish, LinkedIn, compromised ad)",
+        "/auth/me response format confirmation — does it return JWT, session cookie value, or user data only",
+        "Exact /api/auth/csrf response format to confirm CSRF token extraction path",
+        "Confirmation that session cookie is not SameSite=Strict (which would block credentialed cross-origin requests)"
+      ],
+      "expected_value": 0.97,
+      "recommended_agents": ["auth-exploit", "ssrf-exploit"],
+      "node_ids": [
+        "n_cors_null_exploit",
+        "n_expr_back",
+        "n_auth_next"
+      ],
+      "cors_null_xss_required": false,
+      "cors_null_exploit_vector": "sandboxed iframe with srcdoc — null origin created by sandbox attribute, no XSS needed",
+      "ready_for_wave_5": true,
+      "blocking_issues": ["victim delivery mechanism — OSINT needed for real user targeting"],
+      "ev_change_from_wave_1": "+0.00 (confirmed critical, EV ceiling at 0.97 pending /auth/me format)"
+    },
+    {
+      "id": "chain_003_updated",
+      "name": "OIDC Nonce Bypass → Azure AD Token Replay → Account Takeover",
+      "description": "NextAuth does not validate the nonce claim in Azure AD OIDC id_tokens. An attacker who can replay a previously captured id_token (or modify claims with a known NEXTAUTH_SECRET) can create a session as any user whose email is known. Azure AD Tenant ID 9046c3d1-04fe-4afe-9e4f-9217f27b5a66 is confirmed.",
+      "steps": [
+        "Obtain a valid Azure AD id_token (from OSINT, phishing, or GitHub leaked client_secret)",
+        "Replay the id_token to NextAuth /api/auth/callback/azure-ad endpoint with modified sub/email claims",
+        "If NEXTAUTH_SECRET is known (from GitHub leaks), forge the JWT session token directly",
+        "Bypass nonce validation — NextAuth session created as victim user",
+        "Access authenticated API endpoints as victim"
+      ],
+      "current_evidence": [
+        "f_c1a4b2e8",
+        "f_c0rs4321"
+      ],
+      "missing_evidence": [
+        "Active OIDC nonce validation test — must exercise live Azure AD flow to confirm absence",
+        "NEXTAUTH_SECRET value (GitHub leaks scan may provide this)",
+        "Exact NextAuth version — CVE-2023-48309 applicability depends on version < 4.24.5"
+      ],
+      "expected_value": 0.76,
+      "recommended_agents": ["auth-exploit", "github-leaks"],
+      "node_ids": ["n_auth_next", "n_oidc_provider"],
+      "ready_for_wave_5": false,
+      "blocking_issues": ["NEXTAUTH_SECRET needed OR active nonce bypass confirmation"],
+      "ev_change_from_wave_1": "+0.00 (unchanged — requires active testing)"
+    },
+    {
+      "id": "chain_004_updated",
+      "name": "RBAC IDOR → Role Self-Escalation → Privilege Escalation",
+      "description": "PUT /rbac/users/{id}/role lacks server-side authorization preventing a user from modifying their own role. An authenticated low-privilege user can enumerate role IDs via /rbac/roles and submit a PUT request assigning themselves admin role.",
+      "steps": [
+        "Authenticate as low-privilege user (via CORS chain or leaked creds)",
+        "GET /rbac/roles to enumerate available role IDs including admin",
+        "PUT /rbac/users/{own_user_id}/role with admin role ID payload",
+        "Confirm role escalation — access admin-only endpoints"
+      ],
+      "current_evidence": [
+        "f_ssrf8af1"
+      ],
+      "missing_evidence": [
+        "Authenticated session required first (obtain via chain_002 or chain_003)",
+        "/rbac/roles endpoint enumeration result",
+        "PUT /rbac/users/{id}/role auth check behavior"
+      ],
+      "expected_value": 0.72,
+      "recommended_agents": ["auth-exploit"],
+      "node_ids": ["n_rbac_api"],
+      "ready_for_wave_5": false,
+      "blocking_issues": ["requires authenticated session first — dependent on chain_002 or chain_003 success"]
+    },
+    {
+      "id": "chain_006_updated",
+      "name": "CORS Auth Access → SSRF Endpoints → Azure IMDS Managed Identity Token",
+      "description": "After obtaining an authenticated session via chain_002, use SSRF-capable endpoints (/proxy, /pdf, /screenshot, /fetch, /render) to probe Azure IMDS at 169.254.169.254. Azure Container Apps with managed identity enabled would return OAuth tokens granting access to Azure resources.",
+      "steps": [
+        "Obtain authenticated session via chain_002 (CORS null-origin exploit)",
+        "Probe /proxy?url=http://169.254.169.254/metadata/instance?api-version=2021-02-01 with Metadata:true header",
+        "If IMDS accessible: request identity token from /metadata/identity/oauth2/token?resource=https://management.azure.com",
+        "Use managed identity token to enumerate Azure resources (Storage, Key Vault, SQL)",
+        "Lateral movement to other Azure services or data exfiltration"
+      ],
+      "current_evidence": [
+        "f_ssrf8af1",
+        "f_b7e2d4a9"
+      ],
+      "missing_evidence": [
+        "Authenticated session (chain_002 must succeed first)",
+        "SSRF internal routing confirmation — does /proxy forward to internal IPs",
+        "Azure managed identity assignment confirmation for the Container App"
+      ],
+      "expected_value": 0.68,
+      "recommended_agents": ["ssrf-exploit", "auth-exploit"],
+      "node_ids": ["n_expr_back", "n_azure_imds"],
+      "ready_for_wave_5": false,
+      "blocking_issues": ["chain_002 must succeed first; SSRF internal routing unconfirmed"]
+    }
+  ],
+  "graph_mutations": {
+    "add_nodes": [
+      {
+        "id": "n_azure_imds",
+        "kind": "asset",
+        "label": "Azure IMDS 169.254.169.254 — managed identity OAuth token endpoint",
+        "value": 9,
+        "ptes_phase": "post-exploitation",
+        "attack_tactic": "TA0006",
+        "evidence_findings": ["f_ssrf8af1", "f_b7e2d4a9"]
+      },
+      {
+        "id": "n_rbac_api",
+        "kind": "access",
+        "label": "RBAC API /rbac/users/{id}/role — auth-gated role management endpoint",
+        "value": 7,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0004",
+        "evidence_findings": ["f_ssrf8af1"]
+      },
+      {
+        "id": "n_oidc_provider",
+        "kind": "asset",
+        "label": "Azure AD OIDC Provider — Tenant 9046c3d1-04fe-4afe-9e4f-9217f27b5a66",
+        "value": 8,
+        "ptes_phase": "exploitation",
+        "attack_tactic": "TA0006",
+        "evidence_findings": ["f_c1a4b2e8", "f_c0rs4321"]
+      }
+    ],
+    "add_edges": [],
+    "update_nodes": [],
+    "update_edges": []
+  }
+}

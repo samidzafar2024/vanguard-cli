@@ -1,0 +1,62 @@
+{
+  "target_url": "https://revops-dev.vercel.app",
+  "host": "revops-dev.vercel.app",
+  "ips": ["64.29.17.67", "216.198.79.67"],
+  "tech_stack": [
+    "Next.js",
+    "React",
+    "NextAuth.js",
+    "Tailwind CSS",
+    "shadcn/ui",
+    "Express.js",
+    "Node.js",
+    "TanStack Query",
+    "Pusher",
+    "Datadog Browser RUM",
+    "Turbopack"
+  ],
+  "cloud_provider": "vercel",
+  "backend_cloud_provider": "azure",
+  "backend_host": "revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io",
+  "backend_ip": "172.179.136.236",
+  "backend_platform": "Azure Container Apps",
+  "backend_framework": "Express.js",
+  "llm_endpoints": [],
+  "framework": "Next.js",
+  "framework_version": null,
+  "language": "JavaScript/TypeScript",
+  "cms": null,
+  "auth_provider": "Azure AD (OAuth2)",
+  "auth_library": "NextAuth.js",
+  "monitoring": "Datadog",
+  "realtime": "Pusher",
+  "ui_generator": "v0.dev",
+  "production_domain": "revops.copointdata.com",
+  "subdomains": [
+    "revops-dev.vercel.app",
+    "revops.copointdata.com",
+    "accelerate.copointdata.com",
+    "pay.copointdata.com",
+    "www.pay.copointdata.com",
+    "www.copointdata.com",
+    "copointdata.com"
+  ],
+  "open_ports": [80, 443],
+  "ssl_issuer": "Google Trust Services (WR1)",
+  "ssl_subject": "*.vercel.app",
+  "ssl_valid_until": "2026-07-27",
+  "csp_report_uri": "/api/csp-report",
+  "interesting_endpoints": [
+    "/api/auth/session",
+    "/api/auth/providers",
+    "/api/auth/csrf",
+    "/api/auth/signin/azure-ad",
+    "/api/auth/callback/azure-ad",
+    "/api/csp-report",
+    "/health (backend)"
+  ],
+  "open_unauthenticated_endpoints": [
+    "https://revops-dev.livelystone-c1480484.westus2.azurecontainerapps.io/health"
+  ],
+  "environment_disclosure": "Backend /health returns {\"status\":\"ok\",\"env\":\"production\"} unauthenticated"
+}
